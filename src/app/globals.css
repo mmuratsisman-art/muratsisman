@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────── LIGHT (enerjik, krem + elektrik) ───────── */
+:root {
+  color-scheme: light;
+  --bg: 247 245 239;
+  --surface: 255 255 255;
+  --surface-2: 236 233 224;
+  --card: 247 245 239;
+  --fg: 18 20 43;
+  --muted: 74 78 109;
+
+  --hero-bg: 222 230 255;
+  --projects-bg: 255 255 255;
+  --lab-bg: 139 63 255;
+  --contact-bg: 47 91 255;
+  --sphere-edge: 30 40 120;
+
+  --blue: 47 91 255;
+  --green: 182 255 0;
+  --orange: 255 106 0;
+  --purple: 139 63 255;
+}
+
+/* ───────── DARK (derin lacivert, siyah değil) ───────── */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: 14 16 32;
+  --surface: 23 26 48;
+  --surface-2: 31 35 64;
+  --card: 31 35 64;
+  --fg: 243 244 255;
+  --muted: 166 170 203;
+
+  --hero-bg: 16 18 40;
+  --projects-bg: 22 25 46;
+  --lab-bg: 70 34 160;
+  --contact-bg: 47 91 255;
+  --sphere-edge: 20 20 70;
+
+  --blue: 91 124 255;
+  --green: 182 255 0;
+  --orange: 255 122 26;
+  --purple: 168 107 255;
+}
+
+html { scroll-padding-top: 5rem; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  transition: background-color .3s ease, color .3s ease;
+}
+
+::selection { background: rgb(var(--green)); color: #0B0D1A; }
+
+:focus-visible { outline: 3px solid rgb(var(--blue)); outline-offset: 3px; border-radius: 6px; }
+.on-color :focus-visible { outline-color: #fff; }
+
+.shell { @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8; }
+
+.dot-grid {
+  background-image: radial-gradient(rgb(var(--fg) / 0.14) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Hero başlığı: scroll ile küçülür (sadece transform/opacity → layout shift yok) */
+.hero-title {
+  transform-origin: left top;
+  transform: scale(calc(1 - var(--p, 0) * 0.62));
+  opacity: calc(1 - var(--p, 0) * 0.85);
+  will-change: transform, opacity;
+}
+
+/* Hero görseli: mouse parallax */
+.parallax {
+  transform: translate(calc(var(--mx, 0) * var(--d, 12) * 1px), calc(var(--my, 0) * var(--d, 12) * 1px));
+  transition: transform .35s ease-out;
+}
+
+@media (max-width: 767px) {
+  .parallax { transform: none; transition: none; }
+}
+
+/* Proje kartı */
+.project-card {
+  transition: transform .35s cubic-bezier(.2, .7, .2, 1), box-shadow .35s ease, border-color .35s ease;
+}
+.project-card:hover,
+.project-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: rgb(var(--card-accent) / 0.7);
+  box-shadow: 0 0 0 1px rgb(var(--card-accent) / 0.5), 0 24px 60px -24px rgb(var(--card-accent) / 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .project-card:hover { transform: none; }
+}

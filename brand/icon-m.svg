@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 16 16" shape-rendering="geometricPrecision">
+  <title>MURAT/LAB — M.</title>
+  <rect width="16" height="16" rx="3.5" fill="#0E1020"/>
+  <polygon fill="#FFFFFF" points="2,12 2,4 4,4 6.5,7.5 9,4 11,4 11,12 9,12 9,7 7.5,9.5 5.5,9.5 4,7 4,12"/>
+  <rect x="12" y="10" width="2" height="2" fill="#B6FF00"/>
+</svg>

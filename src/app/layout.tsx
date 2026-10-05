@@ -1,0 +1,48 @@
+import type { Metadata, Viewport } from 'next';
+import { Bricolage_Grotesque, Inter, JetBrains_Mono } from 'next/font/google';
+import './globals.css';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import { siteConfig } from '@/data/site';
+
+const display = Bricolage_Grotesque({ subsets: ['latin', 'latin-ext'], variable: '--font-display', display: 'swap' });
+const sans = Inter({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' });
+const mono = JetBrains_Mono({ subsets: ['latin', 'latin-ext'], variable: '--font-mono', display: 'swap' });
+
+export const metadata: Metadata = {
+  metadataBase: new URL(`https://${siteConfig.domain}`),
+  title: { default: `${siteConfig.brand.left}/${siteConfig.brand.right} — ${siteConfig.name}`, template: `%s — MURAT/LAB` },
+  description: siteConfig.description,
+  // Tek kaynak: public/ altındaki dosyalar. app/ içinde file-convention ikon YOK (çakışma olmasın).
+  icons: {
+    icon: [
+      { url: '/favicon.ico?v=2', sizes: '16x16 32x32', type: 'image/x-icon' },
+      { url: '/icons/icon-16.png?v=2', sizes: '16x16', type: 'image/png' },
+      { url: '/icons/icon-32.png?v=2', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png?v=2', sizes: '180x180', type: 'image/png' }],
+  },
+};
+
+export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
+
+// İlk boyamadan önce tema uygula (flash yok): kayıtlı tercih → sistem tercihi.
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}})()`;
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="tr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className={`${display.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}>
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-acid focus:px-4 focus:py-2 focus:text-ink">
+          İçeriğe geç
+        </a>
+        <Header />
+        <main id="main">{children}</main>
+        <Footer />
+      </body>
+    </html>
+  );
+}
