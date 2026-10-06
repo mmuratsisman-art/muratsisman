@@ -4,3 +4,8 @@ out
 next-env.d.ts
 *.tsbuildinfo
 .env*.local
+.env
+.env.*
+!.env.example
+seed*.sql
+qa-shots
