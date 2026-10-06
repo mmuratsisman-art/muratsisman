@@ -4,7 +4,22 @@
 
 `0001_cms_schema.sql`, `0002_cms_rls.sql`, `0003_cms_storage.sql` proje sahibi tarafından **gerçek Supabase projesinde, SQL Editor ile sırayla uygulanmıştır** (`Success. No rows returned`) ve `tests/rls_smoke.sql` PASS vermiştir. Bu üç dosya **uygulanmış sayılır: içeriğini değiştirmeyin** (stil/refactor dahil).
 
-## Kurallar
+`0004_faz3b_drafts_and_publish.sql` (FAZ 3B-A1) **hazırlandı, henüz hiçbir veritabanına UYGULANMADI**. Gerçek Supabase'te sizin tarafınızdan çalıştırılacaktır.
+
+## 0004 nasıl uygulanır (FAZ 3B-A1)
+
+1. **Yedek/önlem**: 0004 yalnızca *ekleyicidir* (mevcut satırları değiştirmez/silmez, 0001–0003 nesnelerini yeniden tanımlamaz). Yine de önce bir geliştirme projesinde denemeniz önerilir.
+2. SQL Editor'ü açın, `supabase/migrations/0004_faz3b_drafts_and_publish.sql` içeriğinin **tamamını** yapıştırıp çalıştırın. Beklenen: `Success. No rows returned`.
+   - Betik tek istek olarak gönderildiğinden bir ifade hata verirse çalıştırma geri alınır; kısmi uygulama şüphesinde önce durumu kontrol edin (Table Editor: `note_drafts` ve `lab_entry_drafts` var mı?).
+   - İkinci kez çalıştırmayın (idempotent değildir; ilk `create trigger/table`'da `already exists` ile durur, veri silmez).
+3. **Doğrulama**: `supabase/tests/rls_smoke_3b.sql` dosyasını SQL Editor'de çalıştırın. Beklenen: `NOTICE: ALL 3B-A1 SMOKE TESTS PASSED`, hiçbir `FAIL` istisnası yok. Dosya kendi transaction'ını `rollback` eder (üretim içeriğine dokunmaz). Not: `now()` bir transaction içinde sabit olduğundan zamana bağlı eskime senaryoları test içinde simüle edilir; gerçek çok-istekli davranış için `docs/cms/LIFECYCLE.md` içindeki manuel QA listesini uygulayın.
+4. Ardından uygulama sürümünü (3B-A1) yayınlayın. **Önce migration, sonra uygulama** (uygulama 0004 fonksiyonlarını çağırır).
+
+## 0004 geri alma
+
+`0004_faz3b_drafts_and_publish_down.sql`: **elle** çalıştırılır, hiçbir zaman otomatik değil. Yalnızca 0004'ün eklediği nesneleri kaldırır; mevcut tablolarda (`projects`, `lab_entries`, `notes`) yalnızca 0004'ün eklediği **tetikleyicileri** düşürür, tabloları değil. Dikkat: bekleyen taslak dokümanları silinir ve admin'den oluşturulmuş içeriklerin shell satırları (placeholder içerikli, hiç public olmamış) tablolarda kalır. Dosyanın başındaki uyarıyı okuyun.
+
+## Kurallar (tüm migration'lar)
 
 1. **Bir kez, sırayla** uygulanır: `0001 → 0002 → 0003`.
 2. **Uygulanmış bir migration asla düzenlenmez.** Değişiklik gerekirse **yeni, ekleyici** bir dosya eklenir (`0004_*.sql`, `0005_*.sql` ...). Bu, canlı veritabanı ile depo arasında sapmayı önler.

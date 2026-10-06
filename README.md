@@ -18,4 +18,4 @@ Placeholder'lar: sosyal linkler (`src/data/social.ts`), e-posta adresi, proje a�
 Herkese açık içerik hâlâ `src/data/*` dosyalarından gelir. Supabase tabanlı admin altyapısı hazırlanıyor ancak **etkin değil**:
 `docs/cms/ARCHITECTURE.md`, `docs/cms/SECURITY.md`, `docs/cms/CONTENT-MIGRATION.md`, `docs/cms/SETUP.md`.
 Ortam değişkenleri isteğe bağlıdır (`.env.example`); olmadan `typecheck / lint / build` ve tüm herkese açık rotalar çalışır.
-Doğrulama durumu (kim neyi doğruladı): `docs/cms/VERIFICATION.md`. Migration iş akışı: `supabase/README.md`.
+Doğrulama durumu (kim neyi doğruladı): `docs/cms/VERIFICATION.md`. İçerik yaşam döngüsü (taslak/yayınla): `docs/cms/LIFECYCLE.md`. Migration iş akışı: `supabase/README.md`.

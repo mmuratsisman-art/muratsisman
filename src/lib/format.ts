@@ -14,3 +14,7 @@ export function estimateReadingMinutes(blocks: NoteBlock[]): number {
 export const noteReadingMinutes = (note: NoteEntry) => note.readingTime ?? estimateReadingMinutes(note.content);
 
 export const pad = (n: number) => String(n).padStart(2, '0');
+
+const dateTimeFmt = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Istanbul' });
+/** Yönetim listelerinde güncellenme zamanı (İstanbul saati). */
+export const formatDateTime = (iso: string) => dateTimeFmt.format(new Date(iso));

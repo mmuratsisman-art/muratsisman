@@ -5,6 +5,8 @@ export interface AdminSectionInfo {
   description: string;
   planned: string[];
   phase: string;
+  /** İçerik editörü etkin mi (yer tutucu değil) */
+  live?: boolean;
 }
 
 export const adminSections: AdminSectionInfo[] = [
@@ -20,6 +22,7 @@ export const adminSections: AdminSectionInfo[] = [
     label: 'Lab',
     description: 'Deneyler ve prototipler',
     phase: '3B',
+    live: true,
     planned: ['Oluştur / düzenle / sil', 'Hikâye alanları (why, how, learned, state)', 'Öne çıkarma', 'Draft → Preview → Published'],
   },
   {
@@ -27,6 +30,7 @@ export const adminSections: AdminSectionInfo[] = [
     label: 'Notlar',
     description: 'Kısa notlar ve gözlemler',
     phase: '3B',
+    live: true,
     planned: ['Blok tabanlı editör (p, h, quote, list)', 'Okuma süresi', 'Etiketler', 'Draft → Preview → Published'],
   },
   {

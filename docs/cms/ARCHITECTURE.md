@@ -115,6 +115,12 @@ src/app/
 - **404:** eşleşmeyen URL'ler ve `notFound()` çağrıları kök `not-found.tsx`'e düşer ve `(site)` layout'unu kullanmaz; bu yüzden bu dosya kabuğu açıkça sarar. Production'da admin yapılandırılmamışken `/admin` de aynı 404'e düşer.
 - Admin kabuğu: "Siteyi gör" bağlantısı, mevcut tema anahtarı (`ThemeToggle`), çıkış, `noindex`.
 
+## Taslak modeli (FAZ 3B-A1)
+
+Notes ve Lab için "Edit → Publish" gerçek bir taslak modeliyle çalışır: **canlı satır yayındayken düzenleme canlıyı değiştirmez**; değişiklikler `note_drafts` / `lab_entry_drafts` tablosundaki tek bir bekleyen dokümanda tutulur, `publish_*()` bunu atomik olarak canlıya kopyalar. Ayrıntılar, akışlar, eskime koruması ve manuel QA için: **`docs/cms/LIFECYCLE.md`**. Migration: `supabase/migrations/0004_faz3b_drafts_and_publish.sql`.
+
+Karar: `project_drafts` 0004'te **oluşturulmadı**; şekli Projects formuna bağlıdır ve `publish_project()` ile birlikte 3B-A2'nin `0005` migration'ında gelecek (kullanılmayan, test edilemeyen şema bırakılmadı). Yayınlanmış slug koruma tetikleyicisi ise `projects`'e de bağlandı (yalnızca tetikleyici; tablo değişmedi).
+
 ## FAZ 3A'da bilerek YAPILMAYANLAR
 
 Editörler (CRUD), medya yükleme arayüzü, herkese açık sitenin Supabase'den okuması, içerik geçişi (cutover), önizleme rotaları, revizyonlar, SEO uygulaması, sitemap/robots, rol sistemi (tek sahip), `supabase gen types`.

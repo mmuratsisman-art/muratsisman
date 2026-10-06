@@ -72,3 +72,42 @@ R1'i yerelde `npm install` ile kurduğunuzda üretilen `package-lock.json` R2 i�
 - FAZ 3A yetki senaryoları yeni dosya yollarıyla yeniden geçti
 
 **Çalıştırılamayan** (sandbox'ta npm/Next yok), yerelde ve preview'da doğrulanmalı: `npm run typecheck`, `lint`, `build` (route tablosu); gerçek Next'te 404 davranışı (`/olmayan` ve `/projects/yok` → public kabuk **tek** kez); tarayıcıda görsel kontrol; Vercel preview.
+
+## FAZ 3B-A1 (taslak altyapısı + Notes ve Lab CMS)
+
+**USER-VERIFIED / REAL SUPABASE:** henüz **yok**. Migration 0004 hazırlandı ancak herhangi bir veritabanına uygulanmadı; `rls_smoke_3b.sql` gerçek Postgres'te çalıştırılmadı.
+
+**AI SANDBOX QA** (npm/Next/Postgres yok; React sunucu render + sahte Supabase istemcisi):
+
+- Saf mantık testleri (`scripts/cms/verify-3b-a1.ts`, 74 kontrol): slug, not işaretlemesi gidiş-dönüşü (gerçek 3 not + 3000 rastgele blok dizisi), doğrulama (gerçek 3 not ve 3 lab kaydı formdan geçip içerik korunuyor), DB hata eşleme, yaşam döngüsü görünümü: **geçti**
+- Server Action güvenlik/davranış testleri (10 mutation × 3 yetki senaryosu + akışlar + sayfa render): **geçti**. Kapsam: her mutation `requireAdmin()` ile başlar, admin değilse 0 DB çağrısı; sahte rol/isAdmin alanları yok sayılır; ham DB hatası sızmaz; token Date'e çevrilmez; yayında slug değişikliği reddedilir; silme yok.
+- Public HTML parity (12 rota) FAZ 3A baseline ile **bayt bayt aynı**; admin sayfalarında public Header/Footer yok (9/9)
+- Katı `tsc` (geçici ortam bildirimleriyle, 116 dosya, `noUnusedLocals`): **temiz**. Gerçek `npm run typecheck` değildir.
+- SQL: yapısal denetim (`$$`, parantez, tırnak dengesi; yıkıcı ifade yok; 0001–0003 hash'leri değişmedi). **Postgres'te çalıştırılmadı.**
+
+**Çalıştırılamayan (R1 listesi):** `npm install`, `typecheck`, `lint`, `build`; migration 0004 ve `rls_smoke_3b.sql` (gerçek Postgres); gerçek Supabase ile uçtan uca CRUD; tarayıcı/görsel kontrol.
+
+### FAZ 3B-A1 R2 (Yayınla düğmesi hatası düzeltmesi)
+
+**Hata (kullanıcı QA'sında bulundu):** Notes edit ekranında onay kutusu işaretlenip "Yayınla"ya basıldığında kayıt `DRAFT` kalıyor ve `?ok=saved` dönüyordu (`intent: null`, `confirm_publish: 'on'`). **Kök neden:** sunucu işlem türünü gönderen düğmenin `name/value`'sundan okuyordu ve eksikse sessizce "kaydet"e düşüyordu. React'in form action gönderiminde submitter'ın FormData'ya girmesi sürüme bağlı bir uygulama ayrıntısıdır.
+
+**USER-VERIFIED / REAL SUPABASE (R1 sonrası, kullanıcı):** migration 0004 uygulandı; `rls_smoke_3b.sql` hata vermeden tamamlandı; Notes'ta taslak oluşturma ve kaydetme çalıştı.
+
+**AI SANDBOX QA (R2):**
+- `scripts/cms/verify-intent-flow.ts` (24 kontrol, Notes ve Lab): Save → yalnızca taslak; Publish + onay → taslak + publish RPC; onaysız Publish, eksik/geçersiz intent, admin değil → hiç RPC yok. **R1 mantığı geri konduğunda aynı test 4 kontrolde başarısız olur** (hatayı yakalıyor).
+- **Gerçek Chromium'da gerçek `NoteForm` ve `LabForm`** (React 19.2.5, gerçek tıklamalar): Kaydet → `intent=save`; onaylı Yayınla → `intent=publish` + `confirm_publish=on`; onaysız Yayınla → `intent=publish`, onay yok; başlıkta Enter → `save`; `requestSubmit()` → intent yok (sunucu reddeder); konsol hatası yok.
+- Mevcut paketler yeniden: saf mantık (74), eylem/güvenlik/sayfa testleri, public HTML parity (12/12 bayt bayt aynı), admin izolasyonu (9/9), katı `tsc` (ortam bildirimleriyle, 117 dosya).
+
+**Çalıştırılamayan:** `npm install`, `typecheck`, `lint`, `build`; **Next 15.5.27'nin paketlediği React ile** gerçek submit (tarayıcı testi sandbox'taki React 19.2.5 ile yapıldı); gerçek Supabase ile uçtan uca publish.
+
+**Not: refresh token logu.** Yerel dev'de eski bir oturum çerezi `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` (400, `refresh_token_not_found`) loglayabilir. Bu beklenen fail-closed davranıştır: hata Supabase auth-js içinden loglanır ve `getUser()` ile döndürülür (fırlatılmaz); middleware sonucu incelemez, `requireAdmin()` kullanıcıyı yok sayıp `/admin/login`'e yönlendirir (`is_admin` RPC'si çağrılmaz). Çerezin temizlenmesi auth-js/@supabase/ssr'a aittir; yeniden girişle düzelir. Kodda değişiklik gerekmedi. `PackFileCacheStrategy Serializing big strings` webpack dev önbelleği uyarısıdır, işlevi etkilemez.
+
+### FAZ 3B-A1 R3 (Taslağı At sonrası eski form değerleri)
+
+**Bulgu (kullanıcı QA'sı, R2 gerçek Next + Supabase):** yayındaki bir notta gövdeye satır eklenip `Taslağı Kaydet`, ardından `Taslağı At` yapıldı. Durum doğru biçimde `PUBLISHED` oldu, DB'de taslak gerçekten silindi, ancak form alanları eski taslak değerini göstermeye devam etti; `Ctrl+F5` düzeltti. DB/yaşam döngüsü hatası değil, form örneğinin durumu.
+
+**Kök neden:** kontrolsüz alanlar (`defaultValue`) + "kirli" alan davranışı; sunucu yeni `initial` gönderse de aynı form örneği yeniden kullanılır. **Sandbox'ta gerçek Chromium'da yeniden üretildi** (anahtarsız: eski taslak değeri ekranda kaldı; anahtarlı: senkron). Not: bu React sürümünde, normal tamamlanan bir action sonrası React formu kendisi sıfırlar ve hata maskelenir; hata, form sıfırlanmadığında (action `redirect` ile bitip normal tamamlanmadığında; bunu çözülmeyen bir promise ile simüle ettim) ortaya çıkar. Gerçek Next'teki tam tetikleyiciyi sandbox'ta birebir yeniden üretemedim; çözüm her iki duruma da bağımlı değil.
+
+**AI SANDBOX QA (R3):** `scripts/cms/verify-form-key.ts` (12 kontrol); gerçek sayfa bileşenleriyle yayında → bekleyen taslak → at akışı (Notes ve Lab parity: key değişir, `initial` değerleri yayındakiyle birebir, token boşalır, slug kilidi korunur); gerçek Chromium'da gerçek formlarla anahtarsız/anahtarlı karşılaştırma ve doğrulama hatasında yazılan metnin korunması; R2 intent regresyonu (24/24 + tarayıcı 12/12) bozulmadı; public HTML parity 12/12; admin izolasyonu 9/9; katı `tsc`.
+
+**Çalıştırılamayan:** `npm install`, `typecheck`, `lint`, `build`; gerçek Next 15.5.27 + Supabase ile uçtan uca discard akışı.

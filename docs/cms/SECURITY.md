@@ -22,7 +22,7 @@ Next.js App Router'da bir sayfa ve layout'u birbirinden bağımsız render edile
 
 1. Admin verisine dokunan **her** Server Action, Route Handler ve veri yükleyici kendi içinde `requireAdmin()` çağırır (layout'a güvenmez).
 2. Asıl güvence her zaman **RLS**'tir: uygulama kontrolü atlansa bile admin olmayan oturum yazamaz ve taslak okuyamaz.
-3. FAZ 3A'daki sayfalar veri okumadığı için bu risk yoktur; kural FAZ 3B'de editörler eklenirken geçerli olur.
+3. FAZ 3B-A1'de bu kural uygulanmıştır: Notes ve Lab için her Server Action (`create`, `save`, `publish`, `unpublish`, `discard`) ve her admin sayfası kendi içinde `requireAdmin()` çağırır; admin değilse DB'ye hiç dokunulmaz (sandbox testiyle doğrulandı). Yazma yolu yalnızca `SECURITY DEFINER` fonksiyonlardır (`is_admin()` + satır kilidi). Taslak tablolarına `anon` erişemez, admin olmayan oturum 0 satır görür ve yazamaz (RLS; gerçek Supabase'te `rls_smoke_3b.sql` ile doğrulanmalıdır).
 
 ## RLS planı
 
