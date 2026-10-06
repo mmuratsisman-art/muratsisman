@@ -20,6 +20,15 @@ export const siteConfig = {
   lab: {
     lines: ['Bazen bir problemi çözmek için.', 'Bazen meraktan.', 'Bazen de sadece ‘acaba olur mu?’ diye.'],
   },
+  labPage: {
+    eyebrow: 'MURAT/LAB — EXPERIMENTS',
+    note: 'Lab, tamamlanmış işlerin değil, denemelerin yeri. Büyük işler için',
+    projectsLinkLabel: 'Selected Projects',
+  },
+  notesPage: {
+    eyebrow: 'MURAT/LAB — NOTES',
+    intro: 'Kısa gözlemler, dersler ve fikirler. Kurumsal bir blog değil; kişisel bir teknoloji defteri.',
+  },
   contact: {
     title: ['LET\u2019S BUILD', 'SOMETHING.'],
     lines: ['Bir fikrin mi var?', 'İşbirliği mi yapmak istiyorsun?', 'Sadece merhaba demek de olur. :)'],

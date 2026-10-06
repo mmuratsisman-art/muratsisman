@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { navigation } from '@/data/navigation';
@@ -8,11 +9,19 @@ import { siteConfig } from '@/data/site';
 import { cn } from '@/lib/cn';
 import ThemeToggle from './ThemeToggle';
 
+const inSection = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
+
+/** Ayrı sayfası olan bölümler: /lab, /lab/* → Lab; /notes, /notes/* → Notlar. */
+const routeSection = (pathname: string) => (inSection(pathname, '/lab') ? 'lab' : inSection(pathname, '/notes') ? 'notes' : null);
+
 export default function Header() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState('top');
 
+  // Ana sayfadaki bölüm takibi. Header layout'ta kalıcı olduğu için route değişince yeniden kurulur.
   useEffect(() => {
+    setActive('top');
     const els = navigation.map((n) => document.getElementById(n.id)).filter((e): e is HTMLElement => !!e);
     if (!els.length) return;
     const io = new IntersectionObserver(
@@ -21,7 +30,7 @@ export default function Header() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -30,6 +39,7 @@ export default function Header() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  const current = routeSection(pathname) ?? active;
   const { left, right } = siteConfig.brand;
 
   return (
@@ -51,10 +61,10 @@ export default function Header() {
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  aria-current={active === item.id ? 'true' : undefined}
+                  aria-current={current === item.id ? 'true' : undefined}
                   className={cn(
                     'rounded-full px-3.5 py-2 text-sm font-medium transition',
-                    active === item.id ? 'bg-fg text-bg' : 'text-muted hover:text-fg',
+                    current === item.id ? 'bg-fg text-bg' : 'text-muted hover:text-fg',
                   )}
                 >
                   {item.label}
@@ -90,7 +100,7 @@ export default function Header() {
                   className="flex items-center justify-between border-b border-fg/10 py-4 font-display text-3xl font-bold"
                 >
                   {item.label}
-                  <span aria-hidden className={cn('h-2.5 w-2.5 rounded-full', active === item.id ? 'bg-acid' : 'bg-fg/20')} />
+                  <span aria-hidden className={cn('h-2.5 w-2.5 rounded-full', current === item.id ? 'bg-acid' : 'bg-fg/20')} />
                 </Link>
               </li>
             ))}
