@@ -29,7 +29,15 @@ export default function ProjectCard({ project }: { project: Project }) {
       </div>
 
       <div className="relative flex items-start justify-between gap-4">
-        <span className="font-mono text-xs tracking-widest text-muted">{project.comingSoon ? 'SOON' : project.index}</span>
+        <span className="flex flex-wrap items-center gap-x-2 font-mono text-[10px] leading-snug tracking-wider text-muted sm:text-xs sm:tracking-widest">
+          <span>{project.comingSoon ? 'SOON' : project.index}</span>
+          {project.typeLabel && !project.comingSoon && (
+            <>
+              <span aria-hidden>·</span>
+              <span>{project.typeLabel}</span>
+            </>
+          )}
+        </span>
         {!project.comingSoon && (
           <span className="grid h-11 w-11 place-items-center rounded-full border border-fg/25 transition group-hover:border-transparent group-hover:bg-[rgb(var(--card-accent))] group-hover:text-ink">
             <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />

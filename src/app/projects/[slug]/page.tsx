@@ -1,28 +1,69 @@
-import Link from 'next/link';
+import { Fragment } from 'react';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import { projects } from '@/data/projects';
+import { caseStudyProjects, getNextProject, getProject, hasCaseStudy } from '@/data/projects';
+import { accentStyle } from '@/lib/accent';
+import ProjectHero from '@/components/project/ProjectHero';
+import SectionShell from '@/components/project/SectionShell';
+import SectionBody from '@/components/project/SectionBody';
+import FlowDiagram from '@/components/project/FlowDiagram';
+import FeaturedCase from '@/components/project/FeaturedCase';
+import TagList from '@/components/project/TagList';
+import NextProject from '@/components/project/NextProject';
+
+type Params = { params: Promise<{ slug: string }> };
 
 export function generateStaticParams() {
-  return projects.filter((p) => !p.comingSoon).map((p) => ({ slug: p.slug }));
+  return caseStudyProjects().map((p) => ({ slug: p.slug }));
 }
 
-export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const project = projects.find((p) => p.slug === slug && !p.comingSoon);
-  if (!project) notFound();
+  const project = getProject(slug);
+  if (!project || !hasCaseStudy(project)) return {};
+  return {
+    title: project.seo.title,
+    description: project.seo.description,
+    // metadataBase (layout) ile https://muratsisman.com.tr/projects/<slug> olarak çözülür
+    alternates: { canonical: `/projects/${project.slug}` },
+  };
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+export default async function ProjectPage({ params }: Params) {
+  const { slug } = await params;
+  const project = getProject(slug);
+  if (!project || !hasCaseStudy(project)) notFound();
+
+  const cs = project.caseStudy;
+  const next = getNextProject(project.slug);
+  const tagsIndex = cs.sections.length;
 
   return (
-    <section className="shell py-16 sm:py-24" style={{ ['--card-accent' as string]: `var(--${project.accent})` }}>
-      <Link href="/#projects" className="inline-flex items-center gap-2 font-mono text-xs tracking-widest text-muted hover:text-fg">
-        <ArrowLeft className="h-4 w-4" aria-hidden /> PROJELER
-      </Link>
-      <h1 className="mt-8 font-display text-5xl font-extrabold leading-none sm:text-7xl">{project.title}</h1>
-      <p className="mt-4 text-xl text-muted">{project.subtitle}</p>
-      <p className="mt-8 max-w-xl text-lg">{project.description}</p>
-      <p className="mt-10 inline-block rounded-full border border-dashed border-fg/30 px-4 py-2 font-mono text-xs tracking-widest">
-        DETAY SAYFASI YAKINDA
-      </p>
-    </section>
+    <div style={accentStyle(project.accent)}>
+      <ProjectHero project={project} />
+
+      {cs.sections.map((s, i) => (
+        <Fragment key={s.id}>
+          <SectionShell id={s.id} heading={s.heading} num={pad(i + 1)} tone={i % 2 === 0 ? 'base' : 'alt'}>
+            <SectionBody section={s} />
+          </SectionShell>
+          {cs.slots?.diagramAfter === s.id && cs.diagram && <FlowDiagram diagram={cs.diagram} id="flow" />}
+          {cs.slots?.casesAfter === s.id && cs.cases?.map((c) => <FeaturedCase key={c.id} c={c} />)}
+        </Fragment>
+      ))}
+
+      <SectionShell
+        id="tags"
+        heading={cs.tagsHeading ?? 'TECH / CONCEPT TAGS'}
+        num={pad(tagsIndex + 1)}
+        tone={tagsIndex % 2 === 0 ? 'base' : 'alt'}
+      >
+        <TagList tags={cs.tags} />
+      </SectionShell>
+
+      {next && <NextProject project={next} />}
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { Accent } from '@/types';
 
 export const accentVar: Record<Accent, string> = {
@@ -13,3 +14,6 @@ export const dotClass: Record<Accent, string> = {
   orange: 'bg-hot',
   purple: 'bg-volt',
 };
+
+export const accentStyle = (accent: Accent): CSSProperties =>
+  ({ ['--card-accent' as string]: accentVar[accent] }) as CSSProperties;
