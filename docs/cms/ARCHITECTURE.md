@@ -33,7 +33,8 @@ Admin (gelecek: /admin/*)  ──►  Supabase (Postgres + Auth + Storage, RLS)
 | `src/lib/cms/mappers.ts` | Dosya modeli ↔ satır eşleyicileri |
 | `src/lib/cms/status.ts` | Yaşam döngüsü ve slug kuralları |
 | `src/lib/cms/admin-sections.ts` | Gelecekteki admin bölümleri |
-| `src/app/admin/**` | Korumalı admin kabuğu + yer tutucular |
+| `src/app/(admin)/admin/**` | Korumalı admin kabuğu + yer tutucular (URL'ler `/admin/*`; route group URL'e yansımaz) |
+| `src/app/(site)/**` | Herkese açık sayfalar (URL'ler değişmedi) ve public kabuğu (`SiteChrome`) |
 | `scripts/cms/*.ts` | İçerik geçişi için doğrulama ve SQL üretici (isteğe bağlı araçlar) |
 
 ## Veritabanı şeması
@@ -97,16 +98,22 @@ draft ──► preview ──► published
 - Yalnızca yer tutucu sayfalar: `/admin/projects|lab|notes|media|site|seo`.
 - `/admin/*` her zaman dinamik (`force-dynamic`), `noindex, nofollow` (meta + `X-Robots-Tag`).
 
-## Karar: admin alanı public site chrome'unu (Header/Footer) kullanıyor
+## Admin / public layout ayrımı (FAZ 3B-A0 ile çözüldü)
 
-`src/app/layout.tsx` Header ve Footer'ı tüm rotalar için render eder; bu yüzden `/admin` sayfalarında da görünür.
+```
+src/app/
+  layout.tsx          ← yalnızca <html>/<body>, tema script'i, fontlar, metadata/viewport
+  not-found.tsx       ← 404 (public kabukla)
+  manifest.ts
+  (site)/layout.tsx   ← SiteChrome: skip-link + Header + <main id="main"> + Footer
+  (site)/page.tsx, projects/…, lab/…, notes/…   ← URL'ler aynı
+  (admin)/admin/…     ← kendi <main> + AdminShell; Header/Footer/navigasyon YOK
+```
 
-**FAZ 3A'da olduğu gibi bırakıldı.** Gerekçe:
-- Doğru ayrım route group'lardır (`(site)` ve `(admin)` ayrı layout) ve bu, Faz 2B ile onaylanmış tüm public sayfaların taşınmasını gerektirir. Bu "küçük" bir değişiklik değil; public routing'e dokunur.
-- Alternatif (Header/Footer'ı `/admin` altında gizleyen istemci sarmalayıcısı) ise onaylı public kök layout'u değiştirir; görsel olarak doğrulayamadan buna değmez.
-- Mevcut durumun güvenlik etkisi yoktur: Header yalnızca herkese açık bağlantılar içerir, yetki kararı vermez.
-
-**FAZ 3B'de** editörlerle birlikte route group ayrımı yapılacak: kök layout yalnızca `<html>/<body>`, tema ve fontları taşır; `(site)` public chrome'u, `(admin)` kendi kabuğunu içerir.
+- Route group adları URL'e yansımaz: public ve admin URL'leri değişmedi.
+- `SiteChrome` işaretlemesi eski kök layout ile birebirdir; public sayfaların HTML çıktısı taşıma öncesi/sonrası bayt bayt aynıdır (bkz. `VERIFICATION.md`).
+- **404:** eşleşmeyen URL'ler ve `notFound()` çağrıları kök `not-found.tsx`'e düşer ve `(site)` layout'unu kullanmaz; bu yüzden bu dosya kabuğu açıkça sarar. Production'da admin yapılandırılmamışken `/admin` de aynı 404'e düşer.
+- Admin kabuğu: "Siteyi gör" bağlantısı, mevcut tema anahtarı (`ThemeToggle`), çıkış, `noindex`.
 
 ## FAZ 3A'da bilerek YAPILMAYANLAR
 

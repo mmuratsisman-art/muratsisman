@@ -59,3 +59,16 @@ Yerel kurulumda **11 uyarı** raporlandı (3 moderate, 8 high); ek olarak `eslin
 ## package-lock.json
 
 R1'i yerelde `npm install` ile kurduğunuzda üretilen `package-lock.json` R2 için de **geçerlidir**: R2'nin `package.json` dosyası R1 ile bayt bayt aynıdır (SHA-256 eşit). Bu ZIP'e lock dosyası **eklenemedi**: sandbox'ta npm registry'ye erişim yok ve R1'in lock'u bana iletilmedi. Lock dosyasını R1 klasöründen proje köküne kopyalayın ve commit'e dahil edin.
+
+## FAZ 3B-A0 (layout ayrımı): AI sandbox QA
+
+Çalıştırılan (npm/Next olmadan; React sunucu render testi, Next/Supabase stub'larıyla):
+
+- 12 public rotanın tam belge HTML'i (kök layout + `(site)` layout + sayfa) taşıma **öncesi/sonrası bayt bayt aynı**
+- Kök `metadata` / `viewport` ve 12 rotanın metadata'sı öncesi/sonrası aynı
+- Dosya sisteminden türetilen public ve admin URL kümeleri öncesi/sonrası aynı
+- 9 admin ekranında public Header / Footer / navigasyon yok, tek `<main>`, skip-link var
+- 404 bileşeni public kabukla (Header + `<main>` + Footer) render ediliyor
+- FAZ 3A yetki senaryoları yeni dosya yollarıyla yeniden geçti
+
+**Çalıştırılamayan** (sandbox'ta npm/Next yok), yerelde ve preview'da doğrulanmalı: `npm run typecheck`, `lint`, `build` (route tablosu); gerçek Next'te 404 davranışı (`/olmayan` ve `/projects/yok` → public kabuk **tek** kez); tarayıcıda görsel kontrol; Vercel preview.

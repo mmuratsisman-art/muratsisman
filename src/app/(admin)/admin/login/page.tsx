@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { signInAction } from '@/app/admin/actions';
+import { signInAction } from '@/app/(admin)/admin/actions';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 import { createClient } from '@/lib/supabase/server';
 
@@ -71,6 +72,10 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
             Giriş yap
           </button>
         </form>
+
+        <Link href="/" className="mt-10 inline-block font-mono text-xs tracking-widest text-muted hover:text-fg">
+          ← SİTEYE DÖN
+        </Link>
       </div>
     </div>
   );

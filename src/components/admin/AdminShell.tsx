@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { signOutAction } from '@/app/admin/actions';
+import Link from 'next/link';
+import { signOutAction } from '@/app/(admin)/admin/actions';
+import ThemeToggle from '@/components/layout/ThemeToggle';
 import AdminNav from './AdminNav';
 
 export default function AdminShell({ email, children }: { email: string | null; children: ReactNode }) {
@@ -11,11 +13,17 @@ export default function AdminShell({ email, children }: { email: string | null; 
             <p className="font-mono text-xs tracking-widest text-muted">MURAT/LAB — ADMIN</p>
             {email && <p className="mt-1 text-sm text-muted">{email}</p>}
           </div>
-          <form action={signOutAction}>
-            <button type="submit" className="rounded-full border border-fg/30 px-5 py-2 text-sm font-semibold transition hover:border-fg hover:bg-fg/5">
-              Çıkış yap
-            </button>
-          </form>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/" className="rounded-full border border-fg/30 px-5 py-2 text-sm font-semibold transition hover:border-fg hover:bg-fg/5">
+              Siteyi gör
+            </Link>
+            <ThemeToggle />
+            <form action={signOutAction}>
+              <button type="submit" className="rounded-full border border-fg/30 px-5 py-2 text-sm font-semibold transition hover:border-fg hover:bg-fg/5">
+                Çıkış yap
+              </button>
+            </form>
+          </div>
         </header>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
