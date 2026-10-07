@@ -15,6 +15,7 @@ export const adminSections: AdminSectionInfo[] = [
     label: 'Projeler',
     description: 'Proje vaka çalışmaları',
     phase: '3B',
+    live: true,
     planned: ['Oluştur / düzenle / sil', 'Case study bölümleri ve diyagram', 'Sıralama', 'Draft → Preview → Published'],
   },
   {
@@ -45,6 +46,7 @@ export const adminSections: AdminSectionInfo[] = [
     label: 'Site',
     description: 'Hero, Currently, About, İletişim',
     phase: '3B',
+    live: true,
     planned: ['Hero ve Currently', 'Who is Murat? ve profil fotoğrafı', 'İletişim / sosyal bağlantılar', 'Taslak → yayınla'],
   },
   {

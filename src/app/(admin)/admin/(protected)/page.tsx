@@ -4,10 +4,10 @@ import { adminSections } from '@/lib/cms/admin-sections';
 export default function AdminHomePage() {
   return (
     <div>
-      <p className="font-mono text-xs tracking-widest text-muted">FAZ 3B-A1 — NOTLAR VE LAB</p>
+      <p className="font-mono text-xs tracking-widest text-muted">FAZ 3B-A2 — PROJELER VE SİTE İÇERİĞİ</p>
       <h1 className="mt-2 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">Admin</h1>
       <p className="mt-4 max-w-xl text-lg text-muted">
-        Notlar ve Lab için taslak / yayınla / yayından kaldır akışı etkin. Projeler ve Site içeriği sonraki adımda eklenecek. Herkese açık
+        Notlar, Lab, Projeler ve Site içeriği için taslak / yayınla akışı etkin. Herkese açık
         site bu aşamada henüz dosya tabanlı içerik kullanıyor; CMS public cutover sonraki fazda yapılacaktır.
       </p>
 

@@ -4,6 +4,7 @@ import type { LabFormValues } from '@/lib/cms/admin/lab-form';
 import type { FormState } from '@/lib/cms/admin/state';
 import { LAB_STATUSES, LAB_TYPES } from '@/lib/cms/validate/lab';
 import { describedBy, Field, inputClass } from './fields';
+import FormSelect from './FormSelect';
 import { useIntentAction } from './useIntentAction';
 
 interface Props {
@@ -77,26 +78,26 @@ export default function LabForm({ mode, action, initial, id, expectedDraftUpdate
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Field id="lab-type" label="TÜR" error={err.type}>
-          <select id="lab-type" name="type" defaultValue={val('type')} className={inputClass}>
+          <FormSelect id="lab-type" name="type" value={val('type')} className={inputClass}>
             {LAB_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
-          </select>
+          </FormSelect>
         </Field>
         <Field id="lab-status" label="DENEY DURUMU" error={err.experiment_status}>
-          <select id="lab-status" name="experiment_status" defaultValue={val('experiment_status')} className={inputClass}>
+          <FormSelect id="lab-status" name="experiment_status" value={val('experiment_status')} className={inputClass}>
             {LAB_STATUSES.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
-          </select>
+          </FormSelect>
         </Field>
         <Field id="lab-accent" label="RENK" error={err.accent}>
-          <select id="lab-accent" name="accent" defaultValue={val('accent')} className={inputClass}>
+          <FormSelect id="lab-accent" name="accent" value={val('accent')} className={inputClass}>
             <option value="blue">blue</option>
             <option value="green">green</option>
             <option value="orange">orange</option>
             <option value="purple">purple</option>
-          </select>
+          </FormSelect>
         </Field>
         <Field id="lab-year" label="YIL" hint={HINT.year} error={err.year}>
           <input id="lab-year" name="year" inputMode="numeric" defaultValue={val('year')} maxLength={4} aria-invalid={!!err.year} aria-describedby={describedBy('lab-year', HINT.year, err.year)} className={inputClass} />

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/format';
-import type { LifecycleView } from '@/lib/cms/admin/lifecycle';
+import type { LifecycleTone } from '@/lib/cms/admin/lifecycle';
 import StatusBadge from './StatusBadge';
 
 export interface AdminListRow {
@@ -8,8 +8,10 @@ export interface AdminListRow {
   href: string;
   title: string;
   meta: string;
-  lifecycle: LifecycleView;
-  updatedAt: string;
+  /** Yalnızca gösterim için gereken alanlar (Notes/Lab/Projects LifecycleView'i ve Site yaşam döngüsü bunu karşılar) */
+  lifecycle: { label: string; tone: LifecycleTone };
+  /** İçerik henüz yoksa null */
+  updatedAt: string | null;
 }
 
 /** Sade liste: BAŞLIK | DURUM | GÜNCELLENDİ | İŞLEM */
@@ -40,7 +42,7 @@ export default function AdminListTable({ caption, rows, emptyText }: { caption: 
                 <StatusBadge label={r.lifecycle.label} tone={r.lifecycle.tone} />
               </td>
               <td className="py-4 pr-4 text-sm text-muted">
-                <time dateTime={r.updatedAt}>{formatDateTime(r.updatedAt)}</time>
+                {r.updatedAt ? <time dateTime={r.updatedAt}>{formatDateTime(r.updatedAt)}</time> : '—'}
               </td>
               <td className="py-4 text-right">
                 <Link href={r.href} className="rounded-full border border-fg/30 px-4 py-1.5 text-sm font-semibold hover:bg-fg/5">

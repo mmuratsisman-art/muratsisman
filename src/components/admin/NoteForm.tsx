@@ -3,6 +3,7 @@
 import type { NoteFormValues } from '@/lib/cms/admin/note-form';
 import type { FormState } from '@/lib/cms/admin/state';
 import { describedBy, Field, inputClass } from './fields';
+import FormSelect from './FormSelect';
 import { useIntentAction } from './useIntentAction';
 
 interface Props {
@@ -66,12 +67,12 @@ export default function NoteForm({ mode, action, initial, id, expectedDraftUpdat
           <input id="note-tags" name="tags" defaultValue={val('tags')} aria-invalid={!!err.tags} aria-describedby={describedBy('note-tags', HINT.tags, err.tags)} className={inputClass} />
         </Field>
         <Field id="note-accent" label="RENK" error={err.accent}>
-          <select id="note-accent" name="accent" defaultValue={val('accent')} className={inputClass}>
+          <FormSelect id="note-accent" name="accent" value={val('accent')} className={inputClass}>
             <option value="blue">blue</option>
             <option value="green">green</option>
             <option value="orange">orange</option>
             <option value="purple">purple</option>
-          </select>
+          </FormSelect>
         </Field>
         <Field id="note-date" label="TARİH" hint={HINT.date} error={err.published_at}>
           <input id="note-date" name="published_at" type="date" defaultValue={val('published_at')} aria-invalid={!!err.published_at} aria-describedby={describedBy('note-date', HINT.date, err.published_at)} className={inputClass} />

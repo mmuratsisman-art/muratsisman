@@ -4,7 +4,22 @@
 
 `0001_cms_schema.sql`, `0002_cms_rls.sql`, `0003_cms_storage.sql` proje sahibi tarafından **gerçek Supabase projesinde, SQL Editor ile sırayla uygulanmıştır** (`Success. No rows returned`) ve `tests/rls_smoke.sql` PASS vermiştir. Bu üç dosya **uygulanmış sayılır: içeriğini değiştirmeyin** (stil/refactor dahil).
 
-`0004_faz3b_drafts_and_publish.sql` (FAZ 3B-A1) **hazırlandı, henüz hiçbir veritabanına UYGULANMADI**. Gerçek Supabase'te sizin tarafınızdan çalıştırılacaktır.
+`0004_faz3b_drafts_and_publish.sql` (FAZ 3B-A1) gerçek Supabase'te uygulanmıştır; **içeriğini değiştirmeyin**.
+
+`0005_faz3b_projects_site_content.sql` (FAZ 3B-A2) **hazırlandı, henüz hiçbir veritabanına UYGULANMADI**. Gerçek Supabase'te sizin tarafınızdan, kontrollü olarak çalıştırılacaktır. **0005 zorunludur**: `project_drafts` tablosu ve proje yaşam döngüsü fonksiyonları 0004'te yoktur (A1'de bilinçli olarak ertelenmişti), ve site içeriği için compare-and-set kaydet / kontrollü yayınla / at fonksiyonları gerekir.
+
+## 0005 nasıl uygulanır (FAZ 3B-A2)
+
+1. 0005 yalnızca *ekleyicidir*: 1 tablo (`project_drafts`), 6 proje fonksiyonu, 3 site içeriği fonksiyonu. Mevcut satırları, tabloları, politikaları, tetikleyicileri ve fonksiyonları (0001–0004) değiştirmez/silmez. Mümkünse önce bir geliştirme projesinde deneyin.
+2. SQL Editor'de `supabase/migrations/0005_faz3b_projects_site_content.sql` içeriğinin **tamamını** çalıştırın. Beklenen: `Success. No rows returned`. İkinci kez çalıştırmayın (idempotent değildir; `already exists` ile durur, veri silmez).
+3. **Doğrulama**: `supabase/tests/rls_smoke_3b_a2.sql` dosyasını çalıştırın. Beklenen: `NOTICE: ALL 3B-A2 SMOKE TESTS PASSED`, hiç `FAIL` istisnası yok. Tek transaction'dadır ve `rollback` eder. **Not:** test, belirlenimli olması için `hero` ve `lab_page` anahtarlarının site içeriği satırlarını transaction içinde siler; bu silmeler `rollback` ile geri alınır (gerçek içeriğiniz etkilenmez). Önceki testler (`rls_smoke.sql`, `rls_smoke_3b.sql`) hâlâ geçmelidir.
+4. **Önce migration, sonra uygulama sürümü** (uygulama 0005 fonksiyonlarını çağırır; sürüm önce çıkarsa Projeler/Site kaydı hata verir, Notes/Lab etkilenmez).
+
+**Smoke testi yeniden çalıştırırken:** önceki çalıştırma bir `FAIL` ile yarım kaldıysa önce bir kez `rollback;` çalıştırın. Test, başta bir **ön kontrol** yapar: artık test verisi (`t3b2-%` projeleri, test kullanıcıları) varsa `FAIL PRE-FLIGHT` ile durur ve ne yapılacağını söyler. Smoke test, `0005`'in yazdığı davranışı sınar; `create_project()` shell'e yalnızca `slug`, `title`, `accent` ve `status` yazar, içerik (özet dahil) yalnızca taslak dokümandadır (bkz. `docs/cms/LIFECYCLE.md`).
+
+## 0005 geri alma
+
+`0005_faz3b_projects_site_content_down.sql`: **elle** çalıştırılır. Yalnızca 0005 nesnelerini kaldırır (9 fonksiyon + `project_drafts`). Veri etkisi: bekleyen proje taslakları silinir; admin'den oluşturulmuş projelerin shell satırları kalır; `site_content_*` satırlarına dokunulmaz. Dosyanın başındaki uyarıyı okuyun.
 
 ## 0004 nasıl uygulanır (FAZ 3B-A1)
 

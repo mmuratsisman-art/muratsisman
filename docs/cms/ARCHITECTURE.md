@@ -119,7 +119,9 @@ src/app/
 
 Notes ve Lab için "Edit → Publish" gerçek bir taslak modeliyle çalışır: **canlı satır yayındayken düzenleme canlıyı değiştirmez**; değişiklikler `note_drafts` / `lab_entry_drafts` tablosundaki tek bir bekleyen dokümanda tutulur, `publish_*()` bunu atomik olarak canlıya kopyalar. Ayrıntılar, akışlar, eskime koruması ve manuel QA için: **`docs/cms/LIFECYCLE.md`**. Migration: `supabase/migrations/0004_faz3b_drafts_and_publish.sql`.
 
-Karar: `project_drafts` 0004'te **oluşturulmadı**; şekli Projects formuna bağlıdır ve `publish_project()` ile birlikte 3B-A2'nin `0005` migration'ında gelecek (kullanılmayan, test edilemeyen şema bırakılmadı). Yayınlanmış slug koruma tetikleyicisi ise `projects`'e de bağlandı (yalnızca tetikleyici; tablo değişmedi).
+Karar: `project_drafts` 0004'te **oluşturulmadı**; şekli Projects formuna bağlıydı. FAZ 3B-A2'de `supabase/migrations/0005_faz3b_projects_site_content.sql` ile `project_drafts` ve `create_project / save_project_draft / publish_project / unpublish_project / discard_project_draft` eklendi (Notes/Lab ile aynı semantik). Yayınlanmış slug koruma tetikleyicisi 0004'ten beri `projects`'te de vardır.
+
+**Site içeriği** yeni tablo gerektirmez: `site_content_drafts` / `site_content_published` kullanılır; 0005 yalnızca `save_site_content_draft` (compare-and-set), `publish_site_content_draft` (kaydedilen sürümü yayınlar) ve `discard_site_content_draft` fonksiyonlarını ekler. Site içeriğinde yayından kaldırma yoktur. Ayrıntı: `docs/cms/LIFECYCLE.md`.
 
 ## FAZ 3A'da bilerek YAPILMAYANLAR
 

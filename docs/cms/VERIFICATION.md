@@ -111,3 +111,39 @@ R1'i yerelde `npm install` ile kurduğunuzda üretilen `package-lock.json` R2 i�
 **AI SANDBOX QA (R3):** `scripts/cms/verify-form-key.ts` (12 kontrol); gerçek sayfa bileşenleriyle yayında → bekleyen taslak → at akışı (Notes ve Lab parity: key değişir, `initial` değerleri yayındakiyle birebir, token boşalır, slug kilidi korunur); gerçek Chromium'da gerçek formlarla anahtarsız/anahtarlı karşılaştırma ve doğrulama hatasında yazılan metnin korunması; R2 intent regresyonu (24/24 + tarayıcı 12/12) bozulmadı; public HTML parity 12/12; admin izolasyonu 9/9; katı `tsc`.
 
 **Çalıştırılamayan:** `npm install`, `typecheck`, `lint`, `build`; gerçek Next 15.5.27 + Supabase ile uçtan uca discard akışı.
+
+### FAZ 3B-A2 R1 (Projeler ve Site İçeriği)
+
+**USER-VERIFIED / REAL SUPABASE (A1, kullanıcı):** migration 0004, Notes ve Lab yaşam döngüsü, intent/publish düzeltmesi (R2) ve form yeniden bağlama (R3) gerçek Next 15.5.27 + Supabase'te doğrulandı.
+
+**Henüz doğrulanmadı (gerçek ortam):** migration **0005** uygulanmadı; `rls_smoke_3b_a2.sql` çalıştırılmadı; Projeler/Site İçeriği uçtan uca gerçek Supabase'te denenmedi.
+
+**AI SANDBOX QA (A2):**
+- `scripts/cms/verify-3b-a2-projects.ts` (33 kontrol) ve `verify-3b-a2-site.ts` (33 kontrol): doğrulama, geçersiz JSON reddi, taslak, onaylı/onaysız yayın, eksik/geçersiz intent (fail-closed), bekleyen değişiklik, discard, form anahtarı, Notes/Lab ile çekirdek parity'si. **Gerçek `src/data` içeriği** (4 proje, 3 case study, 10 site belgesi) formlardan ve JSON editöründen **alan alan kayıpsız** geçer.
+- **Mutasyon testi:** 12 bilinçli bozma (intent fail-open, onay atlama, yanlış token, bilinmeyen anahtar, `javascript:` bağlantı, bilinmeyen JSON alanı, eşit taslağı bekleyen sayma, form anahtarından token çıkarma, case study zorunluluğu, JSON yutma, çekirdek intent kontrolü) betiklerce **yakalandı**.
+- Gerçek sayfa bileşenleri + sahte Supabase (Projeler ve Site): liste durumları, bekleyen taslak, **discard sonrası form değerlerinin yayındakiyle birebir olması ve anahtar değişimi**, 404, admin değil → tablo okunmaz.
+- **Gerçek Chromium'da gerçek `ProjectForm` ve `SiteContentForm`:** açık intent (Kaydet/Yayınla/Enter/requestSubmit), onay kutusu, discard sonrası yeniden bağlama (sert yenileme yok), doğrulama hatasında yazılanın korunması.
+- A1 regresyonları (intent-flow 24, form-key 12, 3b-a1 74) ve public HTML parity (12/12 bayt bayt aynı), admin izolasyonu, katı `tsc`.
+- SQL: yapısal denetim. **Postgres'te çalıştırılmadı.**
+
+**Çalıştırılamayan:** `npm install`, `typecheck`, `lint`, `build`; 0005 ve `rls_smoke_3b_a2.sql` (gerçek Postgres); gerçek Next 15.5.27 ile uçtan uca.
+
+### FAZ 3B-A2 R2 (smoke test düzeltmesi)
+
+**USER-VERIFIED / REAL SUPABASE:** migration `0005` başarıyla uygulandı (`Success. No rows returned`). `rls_smoke_3b_a2.sql` (R1) bölüm 1 (anon) ve bölüm 2'yi (admin olmayan kullanıcı) geçti, bölüm 3'ün ilk shell assertion'ında `FAIL draft save must sync only slug/title on the shell (got title Full Proj, summary )` ile durdu.
+
+**Kök neden: TEST HATASI, migration hatası değil.** Test, `create_project()`'e `summary: 's'` verip canlı shell satırında `summary = 's'` bekliyordu. `create_project()` (A1 sözleşmesi: shell = yalnızca şemanın zorunlu kıldığı alanlar) shell'e `slug, title, accent, status` yazar; `projects.summary` `NOT NULL DEFAULT ''` olduğundan zorunlu değildir ve `''` kalır. Gerçek DB'nin döndürdüğü boş `summary` doğru davranıştır. `0005` değişmedi (R1'deki dosyayla bayt bayt aynı); düzeltici migration gerekmez.
+
+**Düzeltmeler (yalnızca `supabase/tests/rls_smoke_3b_a2.sql`):** hatalı assertion, tüm shell semantiğini sınayan kapsamlı bir kontrolle değiştirildi (slug+title yansır; status `draft`, `published_at` NULL; accent create-time değerinde kalır; summary/subtitle/size/graphic/tags/kind/type_label/category/durum etiketi/case_study/sort_order şema varsayılanında; içerik taslakta). `create_project` sonrası "özet shell'e yazılmaz, taslakta durur" kontrolü eklendi. Ön kontrol (yarım kalmış çalıştırmanın artığı) ve `about` anahtarı için belirlenimlilik (`rollback` ile geri alınan silme) eklendi.
+
+**Aynı tip sorun için bütün test gözden geçirildi.** Betik ilk hatada durduğundan bölüm 3'ün kalanı ve bölüm 4–5 gerçek DB'de **hiç çalışmamıştı**. Her assertion gerçek `0001`/`0004` tetikleyici kodları ve `0005` fonksiyon kodlarına karşı satır satır izlendi; ayrıca `0005` fonksiyonları ve tetikleyiciler SQL'den mekanik olarak bir modele çevrilip (fonksiyon hatasında geri alma davranışı dahil) testin adımları yeniden oynatıldı: tüm bölümler beklentilerle uyumlu; eski beklenti modelde aynı hatayı üretiyor. **Bu bir Postgres çalıştırması değildir.**
+
+### FAZ 3B-A2 R3 (doğrulama hatasında select durumu)
+
+**Bulgu (gerçek tarayıcı QA'sı, `/admin/projects/new`):** doğrulama hatasından sonra **Tür** select'i `(seçilmedi)`'ye dönüyor; metin kutuları korunuyor.
+
+**Kök neden:** kontrolsüz `<select defaultValue>` + React'in hata sonrası otomatik form sıfırlaması. React, yeniden render'da `defaultValue` değişimini `<select>` seçeneklerine yansıtmaz (kaynakta yalnızca `multiple` değişirse uygulanır); sıfırlama select'i ilk haline döndürür. **Gerçek Chromium'da yeniden üretildi: 12 kontrolden 10'u (tüm select'ler) kayboluyordu; checkbox'lar etkilenmiyordu.** Etki yalnızca Projects değil: **Notes (1), Lab (3) ve Site/Currently (1) select'leri de** aynı kusura sahipti (A1'den beri; A1 R3'te form durumunu yalnızca metin alanlarıyla doğrulamıştım).
+
+**Düzeltme:** tek ortak `FormSelect` (değere göre anahtarlı); 4 formdaki 10 select buna geçirildi. Sunucu, `form-key`, yaşam döngüsü ve DB koduna dokunulmadı.
+
+**AI SANDBOX QA (R3):** `scripts/cms/verify-form-state.ts` (14 kontrol; FormSelect sözleşmesi, ham `<select>` yasağı taraması, sunucunun select/checkbox değerlerini geri yollaması create ve save yolunda, manuel QA JSON'unun geçerliliği, QA akışı); mutasyon testleri yakalıyor. **Gerçek Chromium'da gerçek formlarla:** düzeltme öncesi 10 başarısız → sonrası 12/12 korunuyor; çok turlu hata senaryoları; A1 intent (Notes/Lab), form-key ve A2 Projects/Site tarayıcı paketleri yeniden geçti. **Çalıştırılamayan:** gerçek `npm run typecheck/lint/build`; gerçek Next 15.5.27'de tarayıcı testi (sandbox React 19.2.5).

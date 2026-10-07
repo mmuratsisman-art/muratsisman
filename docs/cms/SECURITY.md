@@ -73,3 +73,10 @@ Hayır, üç katmanda engellenir: (1) RLS `status = 'published'`, (2) taslak/yay
 - Inline medya (içerik gövdesinde görsel) henüz yok; eklenince `media_assets` okuma politikası genişletilmeli.
 - Denetim kaydı (audit log) yok; yalnızca `created_by/updated_by`.
 - `supabase/tests/rls_smoke.sql` proje sahibi tarafından **gerçek Supabase projesinde çalıştırıldı: PASS** (bkz. `VERIFICATION.md`). Şema/RLS her değiştiğinde yeniden çalıştırın.
+
+## FAZ 3B-A2 eklemeleri (Projeler ve Site İçeriği)
+
+- Projeler, Notes/Lab ile aynı ortak çekirdeği kullanır (her Server Action ve her sayfa kendi başına `requireAdmin()`; intent açık ve fail-closed; onay kutusu sunucuda zorunlu; yazma yalnızca `SECURITY DEFINER` fonksiyonlarıyla).
+- Site içeriği mutation çekirdeği (`site-actions-core.ts`) aynı ilkelerle yazılmıştır: anahtar sunucuda **allowlist** ile doğrulanır (`isSiteKey`), form alanları anahtara özel allowlist'ten okunur (sahte `role`/`isAdmin` yok sayılır), belge **sunucuda sıkı şekil doğrulamasından** geçer (bilinmeyen alan reddedilir; bağlantılar yalnızca `#`, `/yol`, `https:`, `mailto:`).
+- 0005 fonksiyonları `SECURITY DEFINER`, `search_path = ''`, her biri `is_admin()` ile **fail-closed**; `anon` için execute yok; `project_drafts` için RLS yalnızca admin. `_apply_project_doc` API rollerine kapalı. Service-role anahtarı yok.
+- Public site Supabase'e **bağlı değildir** (dosya tabanlı); admin'de yapılan hiçbir şey public içeriği etkilemez.
