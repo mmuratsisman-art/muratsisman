@@ -50,13 +50,28 @@ Mevcut veride çakışma: `faz-3b-a1-lab-testi` ve `ai-tool-explorations` Lab'da
 - `static` modu bir *fallback* değil, bilinçli yapılandırmadır.
 
 ## 6. Cache ve yayın sonrası güncellenme
-- Veri: `unstable_cache`, **revalidate=60 sn**, etiket `cms-public` (+ `cms-projects|lab|notes|site`).
+- Veri: `unstable_cache` + **sert yaş sınırı** (`src/lib/content/envelope-cache.ts`). Her kayıt `{ at, data }` zarfıdır; `at` = sorgunun başladığı an.
+  - **Yumuşak süre 50 sn** (`CMS_SOFT_REVALIDATE_SECONDS`): aşılınca eski veri hâlâ sunulabilir, yenileme arka planda başlar (trafik varken sert sınıra düşülmez).
+  - **Sert sınır 60 sn** (`CMS_REVALIDATE_SECONDS`): bundan eski veri **ASLA** sunulmaz. İstek, sorguyu eşzamanlı yapar; sorgu başarısızsa **hata** döner (eski içeriğe ya da statik içeriğe dönülmez). Sonuç: yayından kaldırılmış içerik, süre dolduktan sonraki ilk istekte 404 olur; kesintide en geç 60 sn sonra hata sayfası görünür.
+  - Aynı anahtar için eşzamanlı sorgular **tek uçuşta** birleştirilir (arka plan yenilemesi ile sert-sınır sorgusu da). Başarılı son sonuç süreç içinde de tutulur; böylece kalıcı kayıt yenilenmese bile süresi dolmuş zarf her istekte yeniden sorgu tetiklemez.
+  - Etiketler: `cms-public` (+ `cms-projects|lab|notes|site`). Önbellek anahtar öneki `cms-public-v2` (zarf biçimi; eski kayıtlarla karışmaz).
+- Sorgu zaman sınırı: her Supabase sorgusu için **8 sn toplam** (`CMS_QUERY_TIMEOUT_MS`, yeniden denemeler dâhil). Süre dolunca istek `AbortController` ile iptal edilir ve `ContentUnavailableError('query', '<tablo>:timeout')` fırlatılır (hata sayfası/5xx; önbelleğe yazılmaz).
 - Sayfa: cms modunda her sayfa `await connection()` ile **dinamik** üretilir (tam-sayfa/ISR önbelleği yok) → yayından kaldırılan sayfanın eski HTML'i önbellekte kalamaz. `generateStaticParams` cms modunda boştur (build'de DB gerekmez).
 - Hatalar önbelleğe yazılmaz (cached fonksiyon fırlatır).
 - **Yayınla / yayından kaldır** (`publish_*`, `unpublish_*` RPC başarılı olunca, `src/lib/cms/admin/rpc.ts`): `revalidateTag('cms-public')` + `revalidatePath('/', 'layout')` → değişiklik **bir sonraki istekte** görünür. Bu çağrı hata verse bile admin işlemi başarısız olmaz.
-- Üst sınır: invalidasyon çalışmazsa (ör. farklı sunucu örneği, edge önbelleği) en geç **~60 sn** içinde güncellenir. DB'de doğrudan SQL ile yapılan değişiklikler için de aynı 60 sn sınırı geçerlidir.
-- Kesinti sırasında: önbellekteki başarılı veri TTL boyunca sunulur (en çok 60 sn eski); TTL dolunca hata sayfası. Yayından kaldırılmış içerik bu pencere dışında geri gelemez.
+- Üst sınır: invalidasyon çalışmazsa (ör. farklı sunucu örneği, edge önbelleği) en geç **60 sn** içinde güncellenir (sert sınır). DB'de doğrudan SQL ile yapılan değişiklikler için de aynı 60 sn sınırı geçerlidir. `revalidatePublicContent()` aynı örnekteki süreç içi kayıtları da temizler; başka örnekler en geç sert sınırda güncellenir.
+- Kesinti sırasında: önbellekteki başarılı veri sert sınıra (60 sn) kadar sunulur; sınırdan sonra **hata sayfası** (5xx). Yayından kaldırılmış içerik bu pencere dışında geri gelemez.
+- Bilinen sınırlar: örnekler arası saat farkı sert sınırı o kadar kaydırır (NTP ile saniyenin altı); arka plan yenilemesi hiç yazılamıyorsa (beklenmeyen) istek başına en çok 1 sorgu yapılır.
 - Not: 404 sayfası ve kök layout `<head>` kimliği build sırasında üretilebilir; kimlik alanları (marka/alan adı) değişirse yeniden deploy gerekebilir. İçerik değişikliklerinden etkilenmez.
+
+### Build ↔ çalışma zamanı `CONTENT_SOURCE` uyumu (FAZ 3B-F1)
+`static` derlenen sayfalar build'de üretilip hazır HTML olarak sunulur; çalışma zamanındaki `CONTENT_SOURCE=cms` onlara ulaşmaz. Bunun sessizce olmaması için:
+- `next.config.mjs`, build anındaki `CONTENT_SOURCE` sınıfını (`static` | `cms` | `invalid`) `env.BUILT_CONTENT_SOURCE` ile pakete gömer (ham değer gömülmez).
+- `src/instrumentation.ts` → `register()` sunucu başlarken bunu çalışma zamanı değeriyle karşılaştırır (`src/lib/content/build-guard.ts`). **Geçerli ve farklıysa (static→cms ya da cms→static) başlatma reddedilir**: günlükte `CONTENT_SOURCE_BUILD_RUNTIME_MISMATCH: build=… runtime=…`, çıkış kodu **78**, sunucu dinlemeye başlamaz.
+- Build `static` iken çalışma zamanı değeri geçersizse de reddedilir; build `cms` iken geçersiz değer, istek anında `getContentSource()` ile zaten fail-closed (5xx) olur.
+- `next dev`'de (NODE_ENV≠production) kontrol atlanır. Build işareti yoksa (eski build) reddedilmez, günlüğe "doğrulanamadı" uyarısı yazılır.
+- Geri alma notu: cms build + `CONTENT_SOURCE=static` ile build'siz geri dönüş artık **çalışmaz** (reddedilir); geri dönüş için `CONTENT_SOURCE`'u değiştirip yeniden derleyin.
+- Sınır: Vercel'de build ve çalışma ortamı aynı dağıtımdan gelir, uyumsuzluk normalde oluşmaz; CDN'den sunulan hazır statik sayfalar için fonksiyon hiç çalışmadığından bu kontrol onları korumaz. Asıl kazanç kendi sunucuda (`next start`) ve F0'dadır.
 
 ## 7. Geçiş (canlıya almadan önce — bu pakette YAPILMAZ)
 1. **Engelleyici:** Post-import raporuna göre (`import-reports/…16-40-23…/post-import-report.md`, 2026-10-08) iki QA kaydı **yayınlanmış** durumda: Lab `faz-3b-a1-lab-testi`, Not `faz-3b-a1-test-notu`. `cms`'e geçilince public sitede görünürler. Admin panelinden yayından kaldırın (bu paket DB'ye yazmaz). Güncel durumu kontrol edin.

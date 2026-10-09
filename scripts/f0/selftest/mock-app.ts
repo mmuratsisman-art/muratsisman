@@ -14,7 +14,13 @@ export interface MockApp { baseUrl: string; port: number; close(): Promise<void>
 
 const disk = new Map<string, Map<string, Entry>>(); // "disk" önbelleği (yeniden başlatmadan sağ çıkar)
 
-export async function startMockApp(opts: { fakeUrl: string; ttlMs: number; source: string; variantBuiltAs: 'cms' | 'static'; token: string; diskKey: string; keepCache: boolean }): Promise<MockApp> {
+/**
+ * model 'v1': 3B-E davranışı (SWR, sınırsız eski içerik, sorgu zaman aşımı yok) — F0'ın bulgu ÜRETTİĞİNİ sınamak için.
+ * model 'f1': F1'in HEDEF davranışı (yumuşak süre = TTL×50/60, sert sınır = TTL: sert sınırda eşzamanlı sorgu, hata → hata; sorgu zaman aşımı) —
+ *             senaryoların doğru davranışta PASS verdiğini sınamak için. İkisi de Next'in KANITI DEĞİLDİR, yalnızca düzenek mantığıdır.
+ */
+export async function startMockApp(opts: { fakeUrl: string; ttlMs: number; source: string; variantBuiltAs: 'cms' | 'static'; token: string; diskKey: string; keepCache: boolean; model?: 'v1' | 'f1'; queryTimeoutMs?: number }): Promise<MockApp> {
+  const f1 = opts.model === 'f1';
   if (!opts.keepCache) disk.delete(opts.diskKey);
   const store = disk.get(opts.diskKey) ?? new Map<string, Entry>();
   disk.set(opts.diskKey, store);
@@ -26,21 +32,29 @@ export async function startMockApp(opts: { fakeUrl: string; ttlMs: number; sourc
       const u = new URL(`${opts.fakeUrl}/rest/v1/${table}`);
       u.searchParams.set('select', cols);
       if (table !== 'site_content_published') u.searchParams.set('status', 'eq.published');
-      http.get(u, { headers: { apikey: FAKE_KEY, authorization: `Bearer ${FAKE_KEY}` } }, (res) => {
+      const req = http.get(u, { headers: { apikey: FAKE_KEY, authorization: `Bearer ${FAKE_KEY}` } }, (res) => {
         let b = '';
         res.on('data', (d: Buffer) => { b += d.toString(); });
         res.on('end', () => {
           if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
           try { const j = JSON.parse(b) as unknown; if (!Array.isArray(j)) return reject(new Error('null')); resolve(j as Record<string, unknown>[]); } catch { reject(new Error('json')); }
         });
-      }).on('error', reject); // NOT: zaman aşımı YOK (gerçek public istemcide de yok → M06 hang ölçümü)
+      });
+      req.on('error', reject);
+      if (f1) req.setTimeout(opts.queryTimeoutMs ?? 3000, () => req.destroy(new Error('timeout'))); // v1: zaman aşımı YOK (3B-E public istemcisinde de yoktu → M06 hang bulgusu)
     });
 
   const COLS: Record<string, string> = { notes: 'slug, status, title', lab_entries: 'slug, status, title', projects: 'slug, status, title', site_content_published: 'key, data' };
   async function cached(table: string): Promise<Record<string, unknown>[]> {
     const e = store.get(table);
     const now = Date.now();
-    if (e && now - e.at < opts.ttlMs) return e.value as Record<string, unknown>[];
+    const freshMs = f1 ? opts.ttlMs * (50 / 60) : opts.ttlMs;
+    if (e && now - e.at < freshMs) return e.value as Record<string, unknown>[];
+    if (e && f1 && now - e.at >= opts.ttlMs) { // SERT sınır: eski veri sunulmaz; hata yayılır
+      const v = await fetchRows(table, COLS[table]);
+      store.set(table, { value: v, at: Date.now() });
+      return v;
+    }
     if (e) { // SWR: eskiyi döndür, arka planda yenile; yenileme hatası yalnızca yutulur
       if (!refreshing.has(table)) {
         refreshing.add(table);

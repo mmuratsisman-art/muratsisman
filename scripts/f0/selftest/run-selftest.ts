@@ -27,7 +27,8 @@ import { m00 } from '../scenarios/m00-build';
 import type { ScenarioResult } from '../lib/types';
 import type { Ctx } from '../scenarios/common';
 import { runScenarios } from '../scenarios';
-import { classifyRuntimeSource } from '../scenarios/m08-build-flip';
+import { classifyRuntimeSource, classifyStartRefusal, REFUSAL_CODE, REFUSAL_EXIT_CODE } from '../scenarios/m08-build-flip';
+import { AppExitedEarly, freePort } from '../lib/proc';
 import { startMockApp, type MockApp } from './mock-app';
 
 let passed = 0;
@@ -461,6 +462,19 @@ export async function runSelftests(root: string): Promise<number> {
     assert.equal(classifyRuntimeSource({ status: 'ERR', cmsMarker: false, staticSeen: false, dbRequests: 0 }), 'unknown');
   });
 
+  console.log('\n[5c] M08: doğrulanmış başlatma reddi sınıflandırıcısı (saf mantık)');
+  const okLog = `[content] ${REFUSAL_CODE}: build=static runtime=cms. Sunucu başlatılmadı`;
+  await t('M08: ret yalnızca çıkış kodu 78 + kodlu günlük + kapalı port ile doğrulanır', () => {
+    const base = { started: false, exitCode: REFUSAL_EXIT_CODE, logText: okLog, portOpenAfterExit: false, built: 'static', runtime: 'cms' };
+    assert.equal(classifyStartRefusal(base), 'verified-refusal');
+    assert.equal(classifyStartRefusal({ ...base, started: true }), 'not-refused');
+    assert.equal(classifyStartRefusal({ ...base, exitCode: 1 }), 'exited-other');
+    assert.equal(classifyStartRefusal({ ...base, exitCode: null }), 'exited-other');
+    assert.equal(classifyStartRefusal({ ...base, logText: '' }), 'exited-other');
+    assert.equal(classifyStartRefusal({ ...base, logText: okLog.replace('runtime=cms', 'runtime=static') }), 'exited-other');
+    assert.equal(classifyStartRefusal({ ...base, portOpenAfterExit: true }), 'refusal-but-port-open');
+  });
+
   console.log('\n[6] senaryo mantığı — MOCK uygulama (Next DEĞİL), TTL=2 sn');
   const fake2 = await startFakeSupabase(baseWorld());
   const apps: MockApp[] = [];
@@ -515,6 +529,45 @@ export async function runSelftests(root: string): Promise<number> {
     writeFileSync(join(mockOut, 'F0-RESULTS-MOCK.md'), md);
     console.log(`\nMOCK örnek rapor (Next davranışı DEĞİL): ${join(mockOut, 'F0-RESULTS-MOCK.md')}`);
   } finally { for (const a of apps) await a.close().catch(() => undefined); await fake2.close(); }
+
+  console.log('\n[6b] senaryo mantığı — MOCK "F1 hedef davranışı" (sert sınır + zaman aşımı + başlatma reddi), TTL=2 sn');
+  const fake3 = await startFakeSupabase(baseWorld());
+  const apps3: MockApp[] = [];
+  try {
+    const TTL = 2;
+    const logDir = mkdtempSync(join(tmpdir(), 'f0-selftest-refuse-'));
+    const ctx3: Ctx = {
+      fake: fake3, ttl: TTL, quick: true,
+      builds: { cms: { code: 0, output: '┌ ƒ /\n├ ƒ /lab\n├ ƒ /notes\n├ ƒ /notes/[slug]\n├ ƒ /lab/[slug]\n└ ƒ /projects/[slug]\n', ms: 1000, requests: [] }, static: { code: 0, output: '┌ ○ /\n', ms: 1000, requests: [] } },
+      sandboxes: { cms: { dir: 'mock', name: 'cms' }, static: { dir: 'mock', name: 'static' } },
+      async start(label, opts = {}) {
+        const variant = opts.variant ?? 'cms';
+        const runtime = opts.source ?? variant;
+        // Gerçek uygulamadaki build-guard kuralının MOCK karşılığı: geçerli ve farklı → başlatma reddi (kod 78, kodlu günlük, port kapalı).
+        if ((runtime === 'cms' || runtime === 'static') && runtime !== variant) {
+          const logFile = join(logDir, `${label}.log`);
+          const text = `[content] ${REFUSAL_CODE}: build=${variant} runtime=${runtime}. Sunucu başlatılmadı\n`;
+          writeFileSync(logFile, text);
+          throw new AppExitedEarly(label, REFUSAL_EXIT_CODE, logFile, text, await freePort());
+        }
+        const app = await startMockApp({ fakeUrl: fake3.url, ttlMs: TTL * 1000, source: runtime, variantBuiltAs: variant, token: 'tok', diskKey: 'mock3', keepCache: !!opts.keepCache, model: 'f1', queryTimeoutMs: 3000 });
+        apps3.push(app);
+        return { baseUrl: app.baseUrl, port: app.port, pid: -1, logFile: label, stop: () => app.close() };
+      },
+      async probe(app, mode) { const r = await fetch(`${app.baseUrl}/f0-probe/revalidate?mode=${mode}`, { method: 'POST', headers: { 'x-f0-token': 'tok' } }); return { status: r.status, body: await r.text() }; },
+      wait: sleep,
+    };
+    const res3: ScenarioResult[] = await runScenarios(ctx3, ['M02', 'M03', 'M04', 'M05', 'M06', 'M07', 'M08']);
+    const by3 = new Map(res3.map((r) => [r.id, r]));
+    const fails = (id: string) => by3.get(id)!.checks.filter((c) => c.verdict === 'FAIL').map((c) => `${c.name} → ${c.observed}`);
+    await t('F1 modeli: senaryolar istisnasız tamamlandı', () => { for (const r of res3) assert.equal(r.status, 'PASS', `${r.id}: ${r.observations.join(' ')}`); });
+    await t('F1 modeli: M03 (yayından kaldırma ilk istekte 404) ve M05 (kesintide eski içerik yok) PASS', () => {
+      assert.deepEqual(fails('M03'), []); assert.deepEqual(fails('M05'), []);
+    });
+    await t('F1 modeli: M02 TTL sonrası ilk istek taze (belge ve ≤TTL+1 sn)', () => { assert.deepEqual(fails('M02'), []); });
+    await t('F1 modeli: M06 hang zaman aşımıyla sonuçlanır; M04/M07 regresyon yok', () => { assert.deepEqual(fails('M06'), []); assert.deepEqual(fails('M04'), []); assert.deepEqual(fails('M07'), []); });
+    await t('F1 modeli: M08 iki yönde de DOĞRULANMIŞ başlatma reddi → PASS', () => { assert.deepEqual(fails('M08'), []); assert.ok(by3.get('M08')!.checks.filter((c) => c.kind === 'req').length >= 2); });
+  } finally { for (const a of apps3) await a.close().catch(() => undefined); await fake3.close(); }
 
   console.log(`\n${passed} PASS, ${failures.length} FAIL, ${notRuns.length} NOT RUN.`);
   for (const n of notRuns) console.log('  NOT RUN', n);

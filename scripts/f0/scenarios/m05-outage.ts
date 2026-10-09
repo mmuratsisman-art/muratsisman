@@ -7,7 +7,8 @@ import { code, fresh, get, guarded, noteUrl, sleep, verOf, type Ctx } from './co
 export async function m05(ctx: Ctx) {
   return guarded('M05', 'Kesinti sırasında eski içerik sunumu (sınırsız mı?)', async (r) => {
     const ttl = ctx.ttl;
-    const pollMs = ctx.quick ? 5000 : 15000;
+    // Yoklama aralığı TTL/4'ü aşmaz (gerçek TTL=60 için DEĞİŞMEZ: 5 sn / 15 sn). Yalnızca selftest'teki küçük TTL'de pencerenin içinde yeterli yoklama olsun diye.
+    const pollMs = Math.min(ctx.quick ? 5000 : 15000, Math.max(500, ttl * 250));
     const windowS = ttl * (ctx.quick ? 2.5 : 5);
     fresh(ctx);
     const app = await ctx.start('m05');

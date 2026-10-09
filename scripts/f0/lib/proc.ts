@@ -50,6 +50,17 @@ function killTree(child: ChildProcess): void {
   else child.kill('SIGKILL');
 }
 
+/**
+ * `next start` hazır olmadan çıktı. Çıkış kodu ve günlük metni taşır: çağıran (M08) bunun DOĞRULANMIŞ bir başlatma reddi
+ * (beklenen kod + beklenen çıkış kodu + port kapalı) olup olmadığını kendisi sınıflar; yalnızca "erken çıktı" PASS sayılmaz.
+ */
+export class AppExitedEarly extends Error {
+  constructor(public readonly label: string, public readonly exitCode: number | null, public readonly logFile: string, public readonly logText: string, public readonly port: number) {
+    super(`next start erken çıktı (${label}); çıkış kodu ${exitCode ?? 'yok'}; günlük: ${logFile}`);
+    this.name = 'AppExitedEarly';
+  }
+}
+
 /** `next start` (yalnızca 127.0.0.1). Hazır olana kadar statik, Supabase'e dokunmayan bir uç noktayı yoklar. */
 export async function startApp(sbx: Sandbox, env: ChildEnv, label: string, logDir: string, guardLog: string): Promise<AppInstance> {
   const port = await freePort();
@@ -60,11 +71,16 @@ export async function startApp(sbx: Sandbox, env: ChildEnv, label: string, logDi
   child.stdout?.on('data', (d: Buffer) => log.write(d));
   child.stderr?.on('data', (d: Buffer) => log.write(d));
   let exited = false;
-  child.on('exit', () => { exited = true; });
+  let exitCode: number | null = null;
+  child.on('exit', (c) => { exited = true; exitCode = c; });
   const baseUrl = `http://127.0.0.1:${port}`;
   const t0 = Date.now();
   for (;;) {
-    if (exited) throw new Error(`next start erken çıktı (${label}); günlük: ${logFile}`);
+    if (exited) {
+      await new Promise<void>((resolve) => { child.stdout?.once('close', () => resolve()); setTimeout(resolve, 1500).unref(); });
+      await new Promise<void>((resolve) => log.end(resolve));
+      throw new AppExitedEarly(label, exitCode, logFile, existsSync(logFile) ? readFileSync(logFile, 'utf8') : '', port);
+    }
     const r = await get(`${baseUrl}/manifest.webmanifest`, 3000);
     if (r.status === 200) break;
     if (Date.now() - t0 > 90000) { killTree(child); throw new Error(`next start hazır olmadı (${label})`); }

@@ -56,6 +56,11 @@ Sandbox proje klasörünün içinde olduğundan Next hem `.f0-sandbox/.../packag
 
 Gözlemler "beklenen" değil **ölçülen** davranıştır; `req` türü bulgular FAIL üretebilir — bu F1'in girdisidir, düzeneğin bozuk olduğu anlamına gelmez.
 
+### F1 sonrası notlar (M02/M03/M05/M06/M08)
+- **M08**: uygulama build ↔ çalışma zamanı `CONTENT_SOURCE` uyumsuzluğunda başlatmayı reddeder (`src/instrumentation.ts`). Senaryo, reddi yalnızca **şu üçü birden** doğruysa geçerli fail-closed sayar: (1) süreç çıkış kodu 78, (2) günlükte `CONTENT_SOURCE_BUILD_RUNTIME_MISMATCH: build=<x> runtime=<y>` (beklenen sınıflarla), (3) çıkıştan sonra port bağlantı kabul etmiyor. Yalnızca günlükte hata satırı görünmesi veya başka nedenle çıkış PASS sayılmaz; sunucu başlar ve statik içerik sunarsa FAIL kalır. Ret, hem `static→cms` hem `cms→static` için beklenir.
+- **M05** yoklama aralığı artık `min(5 sn | 15 sn, TTL/4)` (gerçek TTL=60 için değişmez; yalnızca selftest'teki küçük TTL'de pencerede yeterli yoklama olsun diye).
+- Selftest'e MOCK "F1 hedef davranışı" modeli eklendi (sert sınır, zaman aşımı, başlatma reddi): senaryoların doğru davranışta PASS verdiği sınanır. Bu mock Next'in kanıtı DEĞİLDİR; kabul eşikleri değiştirilmedi.
+
 ## Sandbox güvenlik mekanizması
 
 1. **Konum**: yalnızca `<proje>/.f0-sandbox/`. Projenin kendi `.next`, `.env*` dosyalarına dokunulmaz.
