@@ -2,20 +2,26 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
-import { getNextNote, getNote, notes } from '@/data/notes';
+import { getNextNote, getNote, staticParamSlugs } from '@/lib/content';
+import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import { accentStyle } from '@/lib/accent';
 import { formatDate, formatReading, noteReadingMinutes } from '@/lib/format';
 import NoteBody from '@/components/notes/NoteBody';
 
 type Params = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return notes.map((n) => ({ slug: n.slug }));
-}
+// DENEY E1 (FAZ 3B-F0 render uyumsuzluğu): `generateStaticParams` varlığı rotayı SSG sınıfına sokar; SSG rotanın istek anındaki
+// ilk render'ı statik üretim bağlamında yapıldığından `connection()` DynamicServerError (DYNAMIC_SERVER_USAGE → 500) fırlatır.
+// CMS modunda export HİÇ tanımlanmaz (undefined) → rota dinamik (ƒ) kalır, `connection()` geçerli olur ve `notFound()` 404 döner.
+// static modunda davranış aynıdır (SSG). Mod, `CONTENT_SOURCE` ortam değişkeninden okunur; burada bilerek FIRLATMAYAN basit bir okuma var
+// (geçersiz değer sayfa/istek anında `getContentSource()` ile fail-closed hata verir; build'de `staticParamSlugs` zaten aynı şekilde fırlatırdı).
+// DOĞRULANDI (F0 M00/M01, Next.js 15.5.27): Next 15.5.27'nin koşullu `undefined` export'u build'de nasıl sınıflandırdığı bu deneyle ölçülecek.
+const isCmsBuild = (process.env.CONTENT_SOURCE ?? '').trim().toLowerCase() === 'cms';
+export const generateStaticParams = isCmsBuild ? undefined : () => staticParamSlugs('notes').map((slug) => ({ slug }));
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const note = getNote(slug);
+  const note = await getNote(slug);
   if (!note) return {};
   return {
     title: note.title,
@@ -25,10 +31,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 export default async function NotePage({ params }: Params) {
+  await ensureDynamicIfCms();
   const { slug } = await params;
-  const note = getNote(slug);
+  const note = await getNote(slug);
   if (!note) notFound();
-  const next = getNextNote(note.slug);
+  const next = await getNextNote(note.slug);
 
   return (
     <div style={accentStyle(note.accent)}>

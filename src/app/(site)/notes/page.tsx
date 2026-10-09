@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { notes } from '@/data/notes';
-import { siteConfig } from '@/data/site';
+import { getNotes, getSiteContent } from '@/lib/content';
+import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import NoteRow from '@/components/notes/NoteRow';
 
 export const metadata: Metadata = {
@@ -9,7 +9,9 @@ export const metadata: Metadata = {
   alternates: { canonical: '/notes' },
 };
 
-export default function NotesPage() {
+export default async function NotesPage() {
+  await ensureDynamicIfCms();
+  const [notes, { siteConfig }] = await Promise.all([getNotes(), getSiteContent()]);
   return (
     <div className="bg-bg">
       <header className="shell pb-10 pt-14 sm:pb-14 sm:pt-24">

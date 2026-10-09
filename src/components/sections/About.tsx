@@ -1,8 +1,9 @@
-import { siteConfig } from '@/data/site';
+import { getSiteContent } from '@/lib/content';
 import SectionHeading from '@/components/ui/SectionHeading';
 
 // FAZ 2: gerçek fotoğraf / kariyer timeline'ı.
-export default function About() {
+export default async function About() {
+  const { siteConfig } = await getSiteContent();
   return (
     <section id="about" aria-labelledby="about-title" className="bg-surface2 py-20 sm:py-28">
       <div className="shell grid items-center gap-12 lg:grid-cols-2">

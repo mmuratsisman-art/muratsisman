@@ -1,7 +1,7 @@
-import { siteConfig } from '@/data/site';
-import { socialLinks } from '@/data/social';
+import { getSiteContent } from '@/lib/content';
 
-export default function Contact() {
+export default async function Contact() {
+  const { siteConfig, socialLinks } = await getSiteContent();
   const { contact } = siteConfig;
   return (
     <section id="contact" aria-labelledby="contact-title" className="on-color overflow-hidden bg-contact py-24 text-white sm:py-32">

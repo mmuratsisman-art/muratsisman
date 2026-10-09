@@ -56,7 +56,7 @@ export function runner() {
         await fn();
         passed += 1;
       } catch (e) {
-        failures.push(`${name}: ${(e as Error).message.split('\n')[0]}`);
+        failures.push(`${name}: ${process.env.T_VERBOSE ? (e as Error).message.slice(0, 1800) : (e as Error).message.split('\n')[0]}`);
       }
     },
     finish(okMessage: string) {

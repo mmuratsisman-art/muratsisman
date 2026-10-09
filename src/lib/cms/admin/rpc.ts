@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { classifyDbError, type DbErrorKind } from '../db-errors';
+import { revalidatePublicContent } from '../../content/revalidate';
 
 export type RpcResult<T> = { ok: true; data: T } | { ok: false; kind: DbErrorKind };
 
@@ -14,5 +15,7 @@ export async function callRpc<T = unknown>(name: string, args: Record<string, un
     console.error(`[cms] rpc ${name} failed`, { code: error.code, message: error.message });
     return { ok: false, kind: classifyDbError(error) };
   }
+  // Yayınlama / yayından kaldırma public içeriği değiştirir: veri önbelleğini ve sayfaları hemen geçersiz kıl (en iyi çaba).
+  if (/^(publish|unpublish)_/.test(name)) revalidatePublicContent();
   return { ok: true, data: data as T };
 }

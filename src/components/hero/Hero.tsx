@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { ArrowDownRight } from 'lucide-react';
-import { siteConfig } from '@/data/site';
+import { getSiteContent } from '@/lib/content';
 import HeroVisual from './HeroVisual';
 import ScrollDock from './ScrollDock';
 
-export default function Hero() {
-  const { hero } = siteConfig;
+export default async function Hero() {
+  const { hero } = (await getSiteContent()).siteConfig;
   return (
     <section id="top" aria-labelledby="hero-title" className="dot-grid relative overflow-hidden bg-hero">
       <ScrollDock />
@@ -37,7 +37,7 @@ export default function Hero() {
           </div>
         </div>
 
-        <HeroVisual />
+        <HeroVisual concepts={hero.concepts} />
       </div>
     </section>
   );

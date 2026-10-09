@@ -1,3 +1,4 @@
+import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import Hero from '@/components/hero/Hero';
 import Currently from '@/components/sections/Currently';
 import SelectedProjects from '@/components/sections/SelectedProjects';
@@ -6,7 +7,8 @@ import Notes from '@/components/sections/Notes';
 import About from '@/components/sections/About';
 import Contact from '@/components/sections/Contact';
 
-export default function HomePage() {
+export default async function HomePage() {
+  await ensureDynamicIfCms();
   return (
     <>
       <Hero />

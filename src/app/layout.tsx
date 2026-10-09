@@ -1,13 +1,16 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { siteConfig } from '@/data/site';
+import { getChromeIdentity } from '@/lib/content';
 
 const display = Bricolage_Grotesque({ subsets: ['latin', 'latin-ext'], variable: '--font-display', display: 'swap' });
 const sans = Inter({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' });
 const mono = JetBrains_Mono({ subsets: ['latin', 'latin-ext'], variable: '--font-mono', display: 'swap' });
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  // static modunda src/data/site.ts; cms modunda site_meta (okunamazsa YALNIZCA kimlik alanları için statik değerler)
+  const siteConfig = await getChromeIdentity();
+  return {
   metadataBase: new URL(`https://${siteConfig.domain}`),
   title: { default: `${siteConfig.brand.left}/${siteConfig.brand.right} — ${siteConfig.name}`, template: `%s — MURAT/LAB` },
   description: siteConfig.description,
@@ -20,7 +23,8 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/icons/apple-touch-icon.png?v=2', sizes: '180x180', type: 'image/png' }],
   },
-};
+  };
+}
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
 

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FlashMessage from '@/components/admin/FlashMessage';
 import LifecyclePanel from '@/components/admin/LifecyclePanel';
+import PreviewLink from '@/components/admin/preview/PreviewLink';
 import PublicSiteNotice from '@/components/admin/PublicSiteNotice';
 import SiteContentForm from '@/components/admin/SiteContentForm';
 import StatusBadge from '@/components/admin/StatusBadge';
@@ -40,6 +41,7 @@ export default async function EditSiteContentPage({ params, searchParams }: { pa
       <p className="mt-3">
         <StatusBadge label={lifecycle.label} tone={lifecycle.tone} />
       </p>
+      <PreviewLink href={`/admin/preview/site/${key}`} />
       <PublicSiteNotice />
       <FlashMessage flash={flash} />
       {lifecycle.key === 'empty' && <p className="mt-6 text-sm text-muted">Bu belge için henüz içerik yok. İlk taslağı kaydedin.</p>}

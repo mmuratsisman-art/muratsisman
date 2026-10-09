@@ -1,20 +1,20 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { siteConfig } from '@/data/site';
 import { dotClass } from '@/lib/accent';
 import type { Accent } from '@/types';
 
-const chips: { label: string; accent: Accent; pos: string; depth: number; dur: string; delay: string }[] = [
-  { label: siteConfig.hero.concepts[0], accent: 'green', pos: 'left-[2%] top-[16%]', depth: 22, dur: '6s', delay: '0s' },
-  { label: siteConfig.hero.concepts[1], accent: 'blue', pos: 'right-[2%] top-[8%]', depth: -16, dur: '7s', delay: '-2s' },
-  { label: siteConfig.hero.concepts[2], accent: 'purple', pos: 'right-[0%] bottom-[16%]', depth: 26, dur: '8s', delay: '-4s' },
-  { label: siteConfig.hero.concepts[3], accent: 'orange', pos: 'left-[0%] bottom-[10%]', depth: -20, dur: '6.5s', delay: '-1s' },
+const chipDefs: { accent: Accent; pos: string; depth: number; dur: string; delay: string }[] = [
+  { accent: 'green', pos: 'left-[2%] top-[16%]', depth: 22, dur: '6s', delay: '0s' },
+  { accent: 'blue', pos: 'right-[2%] top-[8%]', depth: -16, dur: '7s', delay: '-2s' },
+  { accent: 'purple', pos: 'right-[0%] bottom-[16%]', depth: 26, dur: '8s', delay: '-4s' },
+  { accent: 'orange', pos: 'left-[0%] bottom-[10%]', depth: -20, dur: '6.5s', delay: '-1s' },
 ];
 
 const clamp = (n: number) => Math.max(-1, Math.min(1, n));
 
-export default function HeroVisual() {
+export default function HeroVisual({ concepts }: { concepts: string[] }) {
+  const chips = chipDefs.map((c, i) => ({ ...c, label: concepts[i] ?? '' }));
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

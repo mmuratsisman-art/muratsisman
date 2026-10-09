@@ -1,7 +1,9 @@
 import { Fragment } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { caseStudyProjects, getNextProject, getProject, hasCaseStudy } from '@/data/projects';
+import { hasCaseStudy } from '@/data/projects';
+import { getNextProject, getProject, staticParamSlugs } from '@/lib/content';
+import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import { accentStyle } from '@/lib/accent';
 import ProjectHero from '@/components/project/ProjectHero';
 import SectionShell from '@/components/project/SectionShell';
@@ -13,13 +15,14 @@ import NextProject from '@/components/project/NextProject';
 
 type Params = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return caseStudyProjects().map((p) => ({ slug: p.slug }));
-}
+const isCmsBuild = (process.env.CONTENT_SOURCE ?? '').trim().toLowerCase() === 'cms';
+export const generateStaticParams = isCmsBuild
+  ? undefined
+  : () => staticParamSlugs('projects').map((slug) => ({ slug }));
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await getProject(slug);
   if (!project || !hasCaseStudy(project)) return {};
   return {
     title: project.seo.title,
@@ -32,12 +35,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default async function ProjectPage({ params }: Params) {
+  await ensureDynamicIfCms();
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await getProject(slug);
   if (!project || !hasCaseStudy(project)) notFound();
 
   const cs = project.caseStudy;
-  const next = getNextProject(project.slug);
+  const next = await getNextProject(project.slug);
   const tagsIndex = cs.sections.length;
 
   return (

@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { navigation } from '@/data/navigation';
-import { siteConfig } from '@/data/site';
 import { cn } from '@/lib/cn';
 import ThemeToggle from './ThemeToggle';
 
@@ -14,7 +13,7 @@ const inSection = (pathname: string, base: string) => pathname === base || pathn
 /** Ayrı sayfası olan bölümler: /lab, /lab/* → Lab; /notes, /notes/* → Notlar. */
 const routeSection = (pathname: string) => (inSection(pathname, '/lab') ? 'lab' : inSection(pathname, '/notes') ? 'notes' : null);
 
-export default function Header() {
+export default function Header({ brand }: { brand: { left: string; right: string } }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState('top');
@@ -40,7 +39,7 @@ export default function Header() {
   }, [open]);
 
   const current = routeSection(pathname) ?? active;
-  const { left, right } = siteConfig.brand;
+  const { left, right } = brand;
 
   return (
     <header className="sticky top-0 z-50 border-b border-fg/10 bg-bg/80 backdrop-blur-md">

@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
-import { siteConfig } from '@/data/site';
-import { featuredLabEntries, labCategories } from '@/data/lab';
+import { getFeaturedLabEntries, getSiteContent } from '@/lib/content';
 import { dotClass } from '@/lib/accent';
 import { pad } from '@/lib/format';
 import SectionHeading from '@/components/ui/SectionHeading';
 import LabStatusBadge from '@/components/lab/LabStatusBadge';
 
-export default function Lab() {
-  const entries = featuredLabEntries(3);
+export default async function Lab() {
+  const { siteConfig, labCategories } = await getSiteContent();
+  const entries = await getFeaturedLabEntries(3);
   return (
     <section id="lab" aria-labelledby="lab-title" className="on-color bg-lab py-20 text-white sm:py-28">
       <div className="shell">

@@ -1,5 +1,8 @@
 # Mevcut İçerik Geçiş Stratejisi
 
+> **FAZ 3B-B notu:** Bu belgedeki `generate-seed.ts` tabanlı seed planı **yerini** `scripts/cms/import/` (plan/apply, provenance, TOCTOU kapısı, rollback) aracına bıraktı. Güncel prosedür: [`IMPORT.md`](./IMPORT.md).
+
+
 **Hiçbir şey FAZ 3A'da taşınmaz.** Dosya tabanlı içerik üretimde tek doğru kaynak kalır. Aşağıdaki plan, FAZ 3B+ içindir.
 
 ## Kapsam

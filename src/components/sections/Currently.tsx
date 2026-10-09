@@ -1,8 +1,9 @@
-import { currently } from '@/data/currently';
+import { getSiteContent } from '@/lib/content';
 import StatusPill from '@/components/ui/StatusPill';
 import SectionHeading from '@/components/ui/SectionHeading';
 
-export default function Currently() {
+export default async function Currently() {
+  const { currently } = await getSiteContent();
   return (
     <section id="currently" aria-labelledby="currently-title" className="bg-bg py-16 sm:py-24">
       <div className="shell">

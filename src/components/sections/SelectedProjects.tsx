@@ -1,8 +1,9 @@
-import { projects } from '@/data/projects';
+import { getProjects } from '@/lib/content';
 import ProjectCard from '@/components/ui/ProjectCard';
 import SectionHeading from '@/components/ui/SectionHeading';
 
-export default function SelectedProjects() {
+export default async function SelectedProjects() {
+  const projects = await getProjects();
   return (
     <section id="projects" aria-labelledby="projects-title" className="bg-projects py-20 sm:py-28">
       <div className="shell">

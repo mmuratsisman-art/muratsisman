@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import FlashMessage from '@/components/admin/FlashMessage';
 import LifecyclePanel from '@/components/admin/LifecyclePanel';
 import ProjectForm from '@/components/admin/ProjectForm';
+import PreviewLink from '@/components/admin/preview/PreviewLink';
 import PublicSiteNotice from '@/components/admin/PublicSiteNotice';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { readFlash } from '@/lib/cms/admin/flash';
@@ -39,6 +40,7 @@ export default async function EditProjectPage({ params, searchParams }: { params
       <p className="mt-3">
         <StatusBadge label={lifecycle.label} tone={lifecycle.tone} />
       </p>
+      <PreviewLink href={`/admin/preview/projects/${id}`} />
       <PublicSiteNotice />
       <FlashMessage flash={flash} />
       {stale && (

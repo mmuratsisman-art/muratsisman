@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
-import { getLabEntry, getNextLabEntry, labEntries } from '@/data/lab';
+import { getLabEntries, getLabEntry, getNextLabEntry, staticParamSlugs } from '@/lib/content';
+import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import { accentStyle } from '@/lib/accent';
 import { pad } from '@/lib/format';
 import LabStatusBadge from '@/components/lab/LabStatusBadge';
@@ -10,13 +11,14 @@ import { LAB_EXPLORING_LABEL, LAB_STORY_SLOTS } from '@/components/lab/labTempla
 
 type Params = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return labEntries.map((e) => ({ slug: e.slug }));
-}
+const isCmsBuild = (process.env.CONTENT_SOURCE ?? '').trim().toLowerCase() === 'cms';
+export const generateStaticParams = isCmsBuild
+  ? undefined
+  : () => staticParamSlugs('lab').map((slug) => ({ slug }));
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const entry = getLabEntry(slug);
+  const entry = await getLabEntry(slug);
   if (!entry) return {};
   return {
     title: entry.title,
@@ -26,12 +28,14 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 export default async function LabEntryPage({ params }: Params) {
+  await ensureDynamicIfCms();
   const { slug } = await params;
-  const entry = getLabEntry(slug);
+  const entry = await getLabEntry(slug);
   if (!entry) notFound();
 
+  const labEntries = await getLabEntries();
   const index = labEntries.findIndex((e) => e.slug === entry.slug);
-  const next = getNextLabEntry(entry.slug);
+  const next = await getNextLabEntry(entry.slug);
   // Şablon sırası + sahibin metni; boş alanlar atlanır
   const story = LAB_STORY_SLOTS.map((slot) => ({ ...slot, body: entry.story[slot.key] ?? [] })).filter((slot) => slot.body.length > 0);
 

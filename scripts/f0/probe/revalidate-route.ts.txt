@@ -1,0 +1,23 @@
+// F0 SANDBOX-ONLY probe route. Bu dosya gerçek projeye KOPYALANMAZ; yalnızca .f0-sandbox/run-*/sbx-*/ altına yazılır.
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePublicContent } from '@/lib/content/revalidate';
+import { CMS_TAG } from '@/lib/content/cache';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: Request) {
+  if (req.headers.get('x-f0-token') !== process.env.F0_PROBE_TOKEN || !process.env.F0_PROBE_TOKEN) {
+    return new Response('forbidden', { status: 403 });
+  }
+  const mode = new URL(req.url).searchParams.get('mode') ?? 'real';
+  const t0 = Date.now();
+  try {
+    if (mode === 'real') revalidatePublicContent(); // admin yayınlama yolunun çağırdığı GERÇEK fonksiyon (etiket + path)
+    else if (mode === 'tag') revalidateTag(CMS_TAG);
+    else if (mode === 'path') revalidatePath('/', 'layout');
+    else return new Response('bad mode', { status: 400 });
+    return Response.json({ ok: true, mode, ms: Date.now() - t0 });
+  } catch (e) {
+    return Response.json({ ok: false, mode, error: (e as Error).message }, { status: 500 });
+  }
+}

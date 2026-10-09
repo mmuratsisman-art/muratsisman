@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { siteConfig } from '@/data/site';
-import { labEntries } from '@/data/lab';
+import { getLabEntries, getSiteContent } from '@/lib/content';
+import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import LabTimeline from '@/components/lab/LabTimeline';
 import { pad } from '@/lib/format';
 
@@ -11,7 +11,9 @@ export const metadata: Metadata = {
   alternates: { canonical: '/lab' },
 };
 
-export default function LabPage() {
+export default async function LabPage() {
+  await ensureDynamicIfCms();
+  const [labEntries, { siteConfig }] = await Promise.all([getLabEntries(), getSiteContent()]);
   const active = labEntries.filter((e) => e.status === 'ACTIVE' || e.status === 'EXPLORING').length;
   return (
     <div>
