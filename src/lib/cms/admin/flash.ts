@@ -4,7 +4,7 @@ import { DB_ERROR_MESSAGES } from '../db-errors';
 const OK: Record<string, string> = {
   created: 'Taslak oluşturuldu.',
   saved: 'Taslak kaydedildi. Yayındaki sürüm değişmedi.',
-  published: 'Yayınlandı. (Public site bu aşamada henüz dosya tabanlı içerik kullanıyor.)',
+  published: 'Yayınlandı. CMS modunda herkese açık siteye yansır.',
   unpublished: 'Yayından kaldırıldı.',
   discarded: 'Bekleyen değişiklikler atıldı. Yayındaki sürüm olduğu gibi duruyor.',
 };

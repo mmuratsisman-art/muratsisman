@@ -44,8 +44,8 @@ export default function LifecyclePanel({ id, lifecycle, unpublishAction, discard
             <form action={unpublishAction} className="mt-3 space-y-3">
               <input type="hidden" name={idFieldName} value={id} />
               <p className="text-sm text-muted">
-                İçerik yayından kalkar ve taslak durumuna döner; içerik silinmez. Public site bu aşamada henüz dosya tabanlı olduğundan
-                gerçek adres şimdilik etkilenmez.
+                İçerik yayından kalkar ve taslak durumuna döner; içerik silinmez. CMS modunda herkese açık sitedeki
+                görünürlüğü de etkilenir. Statik modda dosya tabanlı içerik kullanılmaya devam eder.
               </p>
               <label className="flex items-start gap-3 text-sm">
                 <input type="checkbox" name="confirm_unpublish" className="mt-1" />
