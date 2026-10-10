@@ -2,11 +2,16 @@ import type { Metadata } from 'next';
 import { getNotes, getSiteContent } from '@/lib/content';
 import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import NoteRow from '@/components/notes/NoteRow';
+import { socialMetadata } from '@/lib/seo/social';
+
+const title = 'NOTES · Notlar ve Gözlemler';
+const description = 'MURAT/LAB notları: yapay zekâ, altyapı, web ürünleri ve otomasyon üzerine kısa gözlemler, dersler ve fikirler.';
 
 export const metadata: Metadata = {
-  title: 'NOTES · Notlar ve Gözlemler',
-  description: 'MURAT/LAB notları: yapay zekâ, altyapı, web ürünleri ve otomasyon üzerine kısa gözlemler, dersler ve fikirler.',
+  title,
+  description,
   alternates: { canonical: '/notes' },
+  ...socialMetadata({ title, description }),
 };
 
 export default async function NotesPage() {

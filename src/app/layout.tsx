@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { getChromeIdentity } from '@/lib/content';
+import { socialMetadata } from '@/lib/seo/social';
 
 const display = Bricolage_Grotesque({ subsets: ['latin', 'latin-ext'], variable: '--font-display', display: 'swap' });
 const sans = Inter({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' });
@@ -10,10 +11,13 @@ const mono = JetBrains_Mono({ subsets: ['latin', 'latin-ext'], variable: '--font
 export async function generateMetadata(): Promise<Metadata> {
   // static modunda src/data/site.ts; cms modunda site_meta (okunamazsa YALNIZCA kimlik alanları için statik değerler)
   const siteConfig = await getChromeIdentity();
+  const defaultTitle = `${siteConfig.brand.left}/${siteConfig.brand.right} — ${siteConfig.name}`;
   return {
   metadataBase: new URL(`https://${siteConfig.domain}`),
-  title: { default: `${siteConfig.brand.left}/${siteConfig.brand.right} — ${siteConfig.name}`, template: `%s — MURAT/LAB` },
+  title: { default: defaultTitle, template: `%s — MURAT/LAB` },
   description: siteConfig.description,
+  // Site geneli paylaşım kartı (ana sayfa ve kendi kartı olmayan sayfalar devralır); başlık/açıklama yukarıdakilerle aynı.
+  ...socialMetadata({ title: defaultTitle, description: siteConfig.description }),
   // Tek kaynak: public/ altındaki dosyalar. app/ içinde file-convention ikon YOK (çakışma olmasın).
   icons: {
     icon: [

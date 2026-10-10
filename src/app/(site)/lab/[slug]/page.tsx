@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { getLabEntries, getLabEntry, getNextLabEntry, staticParamSlugs } from '@/lib/content';
 import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import { accentStyle } from '@/lib/accent';
+import { socialMetadata } from '@/lib/seo/social';
 import { pad } from '@/lib/format';
 import LabStatusBadge from '@/components/lab/LabStatusBadge';
 import { LAB_EXPLORING_LABEL, LAB_STORY_SLOTS } from '@/components/lab/labTemplate';
@@ -24,6 +25,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: entry.title,
     description: entry.summary,
     alternates: { canonical: `/lab/${entry.slug}` },
+    ...socialMetadata({ title: entry.title, description: entry.summary }),
   };
 }
 

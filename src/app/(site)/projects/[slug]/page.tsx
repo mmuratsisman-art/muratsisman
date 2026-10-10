@@ -5,6 +5,7 @@ import { hasCaseStudy } from '@/data/projects';
 import { getNextProject, getProject, staticParamSlugs } from '@/lib/content';
 import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import { accentStyle } from '@/lib/accent';
+import { socialMetadata } from '@/lib/seo/social';
 import ProjectHero from '@/components/project/ProjectHero';
 import SectionShell from '@/components/project/SectionShell';
 import SectionBody from '@/components/project/SectionBody';
@@ -29,6 +30,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     description: project.seo.description,
     // metadataBase (layout) ile https://muratsisman.com.tr/projects/<slug> olarak çözülür
     alternates: { canonical: `/projects/${project.slug}` },
+    ...socialMetadata({ title: project.seo.title, description: project.seo.description }),
   };
 }
 

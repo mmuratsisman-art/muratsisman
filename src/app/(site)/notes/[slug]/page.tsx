@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { getNextNote, getNote, staticParamSlugs } from '@/lib/content';
 import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import { accentStyle } from '@/lib/accent';
+import { socialMetadata } from '@/lib/seo/social';
 import { formatDate, formatReading, noteReadingMinutes } from '@/lib/format';
 import NoteBody from '@/components/notes/NoteBody';
 
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: note.title,
     description: note.excerpt,
     alternates: { canonical: `/notes/${note.slug}` },
+    ...socialMetadata({ title: note.title, description: note.excerpt, publishedTime: note.publishedAt }),
   };
 }
 

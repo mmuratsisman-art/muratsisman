@@ -21,6 +21,8 @@ import { getContentSource } from '@/lib/content/source';
 import { compareBySortOrder, compareNotes } from '@/lib/content/order';
 import { supabaseReader, type PublicReader, type QueryClient } from '@/lib/content/reader';
 import { PROJECT_COLS, LAB_COLS, NOTE_COLS } from '@/lib/content/columns';
+import { buildRobots, buildSitemapEntries, loadSitemapEntries, ROBOTS_DISALLOW, siteBaseUrl } from '@/lib/seo/crawl';
+import { socialMetadata } from '@/lib/seo/social';
 import { __test as pub } from '@/lib/supabase/public';
 import { runner } from './test-harness';
 
@@ -335,11 +337,103 @@ async function main() {
     const { p } = make(world({ notes: [nRow(0), nRow(1, { status: 'draft', published_at: null })] }));
     assert.equal(await p.getNote(notes[1].slug), undefined);
   });
-  await check('T11c sitemap/robots: projede YOK → sızıntı yüzeyi yok (N/A, SEO fazı); eklenirse provider kullanmalı', () => {
+  await check('T11c sitemap/robots: yalnızca src/app/robots.ts + sitemap.ts var (statik dosya yok); veri yalnızca @/lib/content getter\'larından', () => {
     const files = readdirSync('src/app', { recursive: true }) as string[];
-    const found = files.filter((f) => /(^|[\\/])(sitemap|robots)\.(ts|tsx|js|xml|txt)$/.test(String(f)));
-    assert.deepEqual(found, []);
-    assert.ok(!existsSync('public/sitemap.xml') && !existsSync('public/robots.txt'));
+    const found = files.map(String).filter((f) => /(^|[\\/])(sitemap|robots)\.[a-z]+$/.test(f)).map((f) => f.replace(/\\/g, '/')).sort();
+    assert.deepEqual(found, ['robots.ts', 'sitemap.ts']);
+    assert.ok(!existsSync('public/sitemap.xml') && !existsSync('public/robots.txt'), 'statik dosya, dinamik rotayı gölgeler');
+    const sm = readFileSync('src/app/sitemap.ts', 'utf8');
+    const rb = readFileSync('src/app/robots.ts', 'utf8');
+    const core = readFileSync('src/lib/seo/crawl.ts', 'utf8');
+    for (const [name, src] of [['sitemap.ts', sm], ['robots.ts', rb], ['crawl.ts', core]] as const) {
+      assert.ok(!/@\/data\//.test(src), name + ' statik veriye dokunmamalı (cms kesintisinde sessiz geçiş yok)');
+      assert.ok(!/supabase|fetch\(|process\.env|from 'node:/.test(src), name + ' doğrudan veri/ağ/ortam kullanmamalı');
+    }
+    for (const g of ['getCaseStudyProjects', 'getLabEntries', 'getNotes', 'getChromeIdentity']) assert.ok(sm.includes(g), 'sitemap.ts ' + g);
+    assert.ok(!/\bgetProjects\b/.test(sm), 'coming-soon filtresi için getCaseStudyProjects kullanılmalı');
+    assert.ok(sm.indexOf('await ensureDynamicIfCms()') !== -1 && sm.indexOf('await ensureDynamicIfCms()') < sm.indexOf('loadSitemapEntries('), 'cms modunda dinamik olmalı (veri okumasından ÖNCE)');
+    assert.ok(rb.indexOf('await ensureDynamicIfCms()') !== -1 && rb.indexOf('await ensureDynamicIfCms()') < rb.indexOf('getChromeIdentity()'));
+    assert.ok(!/\btry\s*\{|\bcatch\s*[({]|\.catch\(/.test(sm + core), 'getter hataları yutulmamalı');
+  });
+  const smSource = (p: ReturnType<typeof make>['p']) => ({ getChromeIdentity: p.getChromeIdentity, getCaseStudyProjects: p.getCaseStudyProjects, getLabEntries: p.getLabEntries, getNotes: p.getNotes });
+  const BASE = `https://${siteConfig.domain}`;
+  await check('T11e sitemap (cms): yalnızca yayınlanmış + gerçek detay sayfası olanlar; coming-soon, taslak, preview, admin YOK', async () => {
+    const comingIdx = projects.findIndex((x) => x.comingSoon);
+    assert.ok(comingIdx !== -1);
+    const caseIdx = projects.map((x, i) => (x.comingSoon || !x.caseStudy ? -1 : i)).filter((i) => i !== -1);
+    const { p } = make(world({
+      projects: [pRow(caseIdx[0]), pRow(comingIdx), pRow(caseIdx[1], { status: 'draft', published_at: null }), pRow(caseIdx[2], { status: 'preview', published_at: null })],
+      lab: [lRow(0), lRow(1, { status: 'draft', published_at: null })],
+      notes: [nRow(0), nRow(1, { status: 'draft', published_at: null })],
+    }));
+    const got = await loadSitemapEntries(smSource(p));
+    assert.deepEqual(got.map((e) => e.url), [
+      `${BASE}/`, `${BASE}/lab`, `${BASE}/notes`,
+      `${BASE}/projects/${projects[caseIdx[0]].slug}`,
+      `${BASE}/lab/${labEntries[0].slug}`,
+      `${BASE}/notes/${notes[0].slug}`,
+    ]);
+    assert.equal(got.find((e) => e.url.endsWith('/notes/' + notes[0].slug))?.lastModified, notes[0].publishedAt);
+    assert.ok(got.filter((e) => !e.url.includes('/notes/')).every((e) => e.lastModified === undefined), 'tarih uydurulmaz');
+    const all = JSON.stringify(got);
+    for (const hidden of [projects[comingIdx].slug, projects[caseIdx[1]].slug, projects[caseIdx[2]].slug, labEntries[1].slug, notes[1].slug, '/admin', 'preview']) assert.ok(!all.includes(hidden), hidden);
+  });
+  await check('T11f sitemap (cms): veri kaynağı hatası → FIRLATIR (5xx); kısmi sitemap ya da statik içeriğe geçiş YOK', async () => {
+    const full = world({ projects: [pRow(0)], lab: [lRow(0)], notes: [nRow(0)] });
+    for (const table of ['projects', 'lab_entries', 'notes', 'site_content_published']) {
+      const { p } = make(full, { fail: table });
+      // site_content_published hatasında yalnızca KİMLİK statik değere döner (belgelenmiş davranış); içerik getter'ları yine de başarılıdır.
+      if (table === 'site_content_published') { const got = await loadSitemapEntries(smSource(p)); assert.equal(got[0].url, `${BASE}/`); continue; }
+      await rejects(() => loadSitemapEntries(smSource(p)), 'query');
+    }
+    const nulls = make(full, { nullData: true });
+    await rejects(() => loadSitemapEntries(smSource(nulls.p)));
+    const { p: q, errors } = make(full, { fail: 'notes' });
+    await rejects(() => loadSitemapEntries(smSource(q)), 'query');
+    assert.ok(errors.length >= 1 && errors.every((e) => /^query:/.test(e)), 'günlükte yalnızca kod + tablo');
+  });
+  await check('T11g sitemap (static mod): src/data kaynaklı; coming-soon yok; veritabanına DOKUNULMAZ', async () => {
+    const { p, f } = make(world(), { source: 'static' });
+    const got = await loadSitemapEntries(smSource(p));
+    const cs = projects.filter((x) => !x.comingSoon && x.caseStudy && x.seo);
+    assert.equal(got.length, 3 + cs.length + labEntries.length + notes.length);
+    assert.ok(!got.some((e) => e.url.endsWith('/projects/' + projects.find((x) => x.comingSoon)!.slug)));
+    assert.equal(f.calls.length, 0);
+  });
+  await check('T11h buildSitemapEntries/siteBaseUrl/buildRobots: tekilleştirme, tarih doğrulaması, geçersiz alan adı reddi, /admin engeli', () => {
+    const e = buildSitemapEntries({ baseUrl: 'https://a.example', projects: [{ slug: 'p' }, { slug: 'p' }], labEntries: [{ slug: 'l' }], notes: [{ slug: 'n1', publishedAt: '2026-03-01' }, { slug: 'n2', publishedAt: 'dün' }] });
+    assert.deepEqual(e, [
+      { url: 'https://a.example/' }, { url: 'https://a.example/lab' }, { url: 'https://a.example/notes' },
+      { url: 'https://a.example/projects/p' }, { url: 'https://a.example/lab/l' },
+      { url: 'https://a.example/notes/n1', lastModified: '2026-03-01' }, { url: 'https://a.example/notes/n2' },
+    ]);
+    assert.equal(siteBaseUrl('muratsisman.com.tr'), 'https://muratsisman.com.tr');
+    for (const bad of ['', 'localhost', 'a b.com', 'evil.com/x', 'a.com:8080', 'https://a.com', '-a.com']) assert.throws(() => siteBaseUrl(bad), bad);
+    const r = buildRobots('https://a.example');
+    assert.deepEqual(r, { rules: [{ userAgent: '*', allow: '/', disallow: ['/admin'] }], sitemap: 'https://a.example/sitemap.xml' });
+  });
+  await check('T11i Open Graph/Twitter: görsel gerektirmeyen `summary` kartı; başlık/açıklama sayfanınkiyle aynı; not = article', () => {
+    const a = socialMetadata({ title: 'T', description: 'D' });
+    assert.deepEqual(a.openGraph, { type: 'website', siteName: 'MURAT/LAB', locale: 'tr_TR', title: 'T', description: 'D' });
+    assert.deepEqual(a.twitter, { card: 'summary', title: 'T', description: 'D' });
+    const b = socialMetadata({ title: 'T', description: 'D', publishedTime: '2026-03-01' });
+    assert.deepEqual(b.openGraph, { type: 'article', siteName: 'MURAT/LAB', locale: 'tr_TR', title: 'T', description: 'D', publishedTime: '2026-03-01' });
+    assert.ok(!JSON.stringify([a, b]).match(/image|"url"/i), 'görsel ya da og:url yazılmaz');
+    const pg = (p: string) => readFileSync(join('src/app/(site)', p), 'utf8');
+    assert.ok(pg('projects/[slug]/page.tsx').includes('socialMetadata({ title: project.seo.title, description: project.seo.description })'));
+    assert.ok(pg('lab/[slug]/page.tsx').includes('socialMetadata({ title: entry.title, description: entry.summary })'));
+    assert.ok(pg('notes/[slug]/page.tsx').includes('socialMetadata({ title: note.title, description: note.excerpt, publishedTime: note.publishedAt })'));
+    for (const l of ['lab/page.tsx', 'notes/page.tsx']) { const s = pg(l); assert.ok(/^\s+title,$/m.test(s) && /^\s+description,$/m.test(s) && s.includes('socialMetadata({ title, description })'), l); }
+    assert.ok(readFileSync('src/app/layout.tsx', 'utf8').includes('socialMetadata({ title: defaultTitle, description: siteConfig.description })'));
+    assert.ok(pg('page.tsx').includes("alternates: { canonical: '/' }"));
+  });
+  await check('T11j admin/preview noindex korumaları aynen yerinde (meta + X-Robots-Tag + matcher); /admin robots\'ta engelli', () => {
+    assert.match(readFileSync('src/app/(admin)/admin/layout.tsx', 'utf8'), /robots: \{ index: false, follow: false \}/);
+    const prev = readFileSync('src/app/(admin)/admin/preview/layout.tsx', 'utf8');
+    assert.ok(prev.includes('export const metadata = PREVIEW_METADATA;'));
+    const mw = readFileSync('src/middleware.ts', 'utf8');
+    assert.ok(mw.includes("'X-Robots-Tag', 'noindex, nofollow'") && mw.includes("matcher: ['/admin/:path*']"));
+    assert.deepEqual([...ROBOTS_DISALLOW], ['/admin']);
   });
   await check('T11d public liste/detay yüzeyleri taslak sızdıracak kaynakları içermez (SEO alanları satırdan, yalnız yayınlanmışta)', async () => {
     const { p } = make(world({ projects: [pRow(0), pRow(1, { status: 'draft', seo_title: 'GİZLİ TASLAK' })] }));

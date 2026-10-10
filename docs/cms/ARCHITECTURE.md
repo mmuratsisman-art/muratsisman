@@ -125,4 +125,4 @@ Karar: `project_drafts` 0004'te **oluşturulmadı**; şekli Projects formuna ba�
 
 ## FAZ 3A'da bilerek YAPILMAYANLAR
 
-Editörler (CRUD), medya yükleme arayüzü, herkese açık sitenin Supabase'den okuması, içerik geçişi (cutover), önizleme rotaları, revizyonlar, SEO uygulaması, sitemap/robots, rol sistemi (tek sahip), `supabase gen types`.
+Editörler (CRUD), medya yükleme arayüzü, herkese açık sitenin Supabase'den okuması, içerik geçişi (cutover), önizleme rotaları, revizyonlar, SEO uygulaması, sitemap/robots (sonradan eklendi: bkz. `docs/cms/PUBLIC-CONTENT.md` §8–§9), rol sistemi (tek sahip), `supabase gen types`.
