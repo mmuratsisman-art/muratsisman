@@ -4,11 +4,16 @@ import { getLabEntries, getSiteContent } from '@/lib/content';
 import { ensureDynamicIfCms } from '@/lib/content/dynamic';
 import LabTimeline from '@/components/lab/LabTimeline';
 import { pad } from '@/lib/format';
+import { socialMetadata } from '@/lib/seo/social';
+
+const title = 'LAB · Experiments & Prototypes';
+const description = 'MURAT/LAB: küçük deneyler, prototipler ve keşifler. Tamamlanmış projelerden ayrı, hâlâ evrilen fikirlerin alanı.';
 
 export const metadata: Metadata = {
-  title: 'LAB · Experiments & Prototypes',
-  description: 'MURAT/LAB: küçük deneyler, prototipler ve keşifler. Tamamlanmış projelerden ayrı, hâlâ evrilen fikirlerin alanı.',
+  title,
+  description,
   alternates: { canonical: '/lab' },
+  ...socialMetadata({ title, description }),
 };
 
 export default async function LabPage() {

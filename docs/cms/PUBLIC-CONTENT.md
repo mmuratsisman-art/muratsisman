@@ -81,11 +81,19 @@ Mevcut veride çakışma: `faz-3b-a1-lab-testi` ve `ai-tool-explorations` Lab'da
 5. Sorun olursa `CONTENT_SOURCE` değişkenini silin/`static` yapın ve yeniden deploy edin (geri dönüş).
 
 ## 8. Sitemap / robots
-Projede `sitemap`/`robots` dosyası **yoktur** (kontrol edildi; test T11c). Bu nedenle bu fazda sızıntı yüzeyi yoktur ve eklenmedi (kapsam dışı, SEO fazı). Eklenirken kaynak olarak `getProjects/getLabEntries/getNotes` kullanılmalı (aynı yayın filtresi). T11c, dosya eklenirse testi bilerek kırar ve bu notu hatırlatır.
+`src/app/robots.ts` ve `src/app/sitemap.ts` vardır (yapı taşları: `src/lib/seo/crawl.ts`; testler T11c, T11e–T11h, T11j).
+- **Kaynak:** yalnızca `@/lib/content` getter'ları (`getCaseStudyProjects`, `getLabEntries`, `getNotes`, `getChromeIdentity`). Yayın filtresi (`status='published'`), 60 sn zarf önbelleği, 8 sn zaman aşımı ve `ContentUnavailableError` davranışı bu yüzden aynen geçerlidir; `@/data/*`, veritabanı ya da ağ doğrudan kullanılmaz.
+- **İçerik:** `/`, `/lab`, `/notes`; vaka çalışması olan (coming-soon olmayan, `caseStudy` + `seo` dolu) projeler; yayınlanmış lab kayıtları ve notlar. `/projects` dizin sayfası yoktur, eklenmez. `lastModified` yalnızca notlarda (yayın tarihi); diğerleri için tarih uydurulmaz.
+- **Hariç:** taslak/önizleme kayıtları (okuyucu zaten yalnızca `published` okur), coming-soon projeler, `/admin/*` ve önizleme adresleri.
+- **Hata:** herhangi bir getter fırlatırsa sitemap isteği 5xx döner; kısmi/boş sitemap üretilmez, statik içeriğe geçilmez (kısmi sitemap, arama motoruna "bu sayfalar silindi" demektir). Tek istisna belgelenmiş kimlik geri dönüşüdür: alan adı `getChromeIdentity()`'den gelir; `site_content_published` okunamazsa YALNIZCA bu alan statik değere düşer (§ getChromeIdentity), içerik getter'ları yine de fırlatır.
+- **Dinamiklik:** cms modunda iki rota da `ensureDynamicIfCms()` ile her istekte çalışır (veri önbellekten gelir); static modunda statik üretilir. `CONTENT_SOURCE=cms` build çıktısında `/sitemap.xml` ve `/robots.txt` için `ƒ (Dynamic)` beklenir; bu gerçek `next build` ile yerelde doğrulanmalıdır (testler yalnızca kaynağı tarar).
+- **robots.txt:** `User-agent: *`, `Allow: /`, `Disallow: /admin`, `Sitemap: https://<alan>/sitemap.xml`. `Disallow` indeks koruması DEĞİLDİR; admin/önizleme için `noindex` meta + `X-Robots-Tag` (middleware) aynen yerindedir.
+- **Dikkat:** `public/sitemap.xml` ya da `public/robots.txt` eklenirse dinamik rotayı gölgeler (T11c bunu yakalar). Slug değişince eski URL sitemap'ten düşer ve 404 olur (yönlendirme yok).
 
 ## 9. Metadata
 Detay sayfalarının `generateMetadata` ve sayfa gövdesi **aynı getter**'ı çağırır; yayınlanmamış/bilinmeyen slug için metadata `{}` ve sayfa 404'tür. Kök `generateMetadata` kimliği `getChromeIdentity()`'den alır. Case-study projelerde `seo_*` boşsa başlık/açıklama projenin kendi alanlarından türetilir (yalnız `<head>`).
+Kanonik adres: ana sayfa dahil tüm indekslenebilir sayfalarda `alternates.canonical` (göreli; `metadataBase` ile mutlak olur). Paylaşım kartı: kök layout site geneli `openGraph`/`twitter` verir; Next bu nesneleri sayfada DEVRALMAZ, değiştirir. Bu yüzden `/lab`, `/notes` ve üç detay sayfası kendi başlık/açıklamalarıyla `socialMetadata()` (`src/lib/seo/social.ts`) çağırır (notlar `article` + `publishedTime`). Görsel yoktur: kart türü `summary`; `og:url` yazılmaz (kanonik adres `canonical`'dır). Paylaşım görseli eklenecekse ayrı karar.
 
 ## 10. Testler
-`scripts/cms/verify-3b-e.ts` (41 kontrol; sahte okuyucu + önbellek simülasyonu + kaynak taraması), `scripts/cms/verify-3b-e-pg.ts` (7 kontrol; yerel geçici PostgreSQL, gerçek şema/RLS, `anon` rolü), `scripts/cms/run-3b-e-tests.sh`.
+`scripts/cms/verify-3b-e.ts` (47 kontrol; sahte okuyucu + önbellek simülasyonu + kaynak taraması), `scripts/cms/verify-3b-e-pg.ts` (7 kontrol; yerel geçici PostgreSQL, gerçek şema/RLS, `anon` rolü), `scripts/cms/run-3b-e-tests.sh`.
 Bu betikler **doğrulamaz**: sayfaların gerçek render'ı, `next build`, lint, tarayıcıda görünüm, Vercel önbellek davranışı, gerçek Supabase (PostgREST) yanıtları. Bunlar yerelde çalıştırılmalıdır (README-INTEGRATION.md).
