@@ -54,3 +54,7 @@
 
 - Projede "Automatically expose new tables" kapalı olduğundan `0002`'deki **açık `grant` satırları zorunludur** (Data API yalnızca bu izinlerle ve RLS'le erişir). Yeni tablo eklerken (`0004+`) aynı şekilde `grant` + RLS politikası ekleyin.
 - Silme davranışı: `on delete cascade` yalnızca `admin_users → auth.users` bağında vardır (kullanıcı silinirse allowlist satırı da gider); medya ve yazar bağlarında `on delete set null`.
+
+## 0007 — Visitor Analytics
+
+`0007_analytics.sql` **hazırlandı, hiçbir veritabanına UYGULANMADI.** Önce yalnızca TEST projesinde, ayrı onayla production'da, elle çalıştırılır. 0001–0006 uygulanmış olmalıdır. Yalnızca *ekleyicidir*: 3 tablo (`analytics_writers`, `analytics_daily`, `analytics_day`), 3 fonksiyon, 1 tetikleyici; mevcut nesneleri değiştirmez. Kurulum, yazıcı hesabı ve etkinleştirme sırası: `docs/cms/ANALYTICS-TEST-KURULUM.md`. Test: `supabase/tests/rls_smoke_analytics.sql` (tek işlem, ROLLBACK). Geri alma: `0007_analytics_down.sql` (elle; toplanan sayaçları siler).
