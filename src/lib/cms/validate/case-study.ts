@@ -1,6 +1,7 @@
 import type { Accent, CaseDiagram, CaseSectionData, CaseStudy, DiagramKind, FeaturedCaseData, ListItem } from '@/types';
 import { isAccent } from './common';
 import { isObj, Issues, keysOk, str, strList, type Obj } from './schema';
+import { checkShowcaseUrl } from './showcase';
 
 /**
  * case_study için SUNUCU TARAFI şekil doğrulaması (bağımlılıksız). Geçersiz JSON/şekil ASLA veritabanına gitmez.
@@ -118,7 +119,7 @@ function featured(v: unknown, path: string, iss: Issues): FeaturedCaseData | und
 export function validateCaseStudy(value: unknown): { ok: true; value: CaseStudy } | { ok: false; error: string } {
   const iss = new Issues();
   if (!isObj(value)) return { ok: false, error: 'case_study bir nesne ({ ... }) olmalı.' };
-  keysOk(value, ['sections', 'tagsHeading', 'tags', 'diagram', 'cases', 'slots'], 'case_study', iss);
+  keysOk(value, ['sections', 'tagsHeading', 'tags', 'diagram', 'cases', 'slots', 'showcase'], 'case_study', iss);
 
   const secs = sections(value.sections, 'case_study.sections', iss);
   const tags = strList(value.tags, 'case_study.tags', iss, { min: 0, max: CASE_LIMITS.tags, item: 40 });
@@ -157,12 +158,28 @@ export function validateCaseStudy(value: unknown): { ok: true; value: CaseStudy 
     }
   }
 
+  let showcase: CaseStudy['showcase'];
+  if (value.showcase !== undefined) {
+    if (!isObj(value.showcase)) iss.add('case_study.showcase', 'nesne olmalı');
+    else {
+      keysOk(value.showcase, ['url'], 'case_study.showcase', iss);
+      const u = value.showcase.url;
+      if (typeof u !== 'string') iss.add('case_study.showcase.url', 'metin olmalı');
+      else {
+        const chk = checkShowcaseUrl(u);
+        if (!chk.ok) iss.add('case_study.showcase.url', chk.error);
+        else showcase = { url: chk.url };
+      }
+    }
+  }
+
   if (!secs || !tags || iss.any) return { ok: false, error: iss.text() || 'case_study geçersiz.' };
   const out: CaseStudy = { sections: secs, tags };
   if (tagsHeading !== undefined) out.tagsHeading = tagsHeading;
   if (dia) out.diagram = dia;
   if (cases) out.cases = cases;
   if (slots) out.slots = slots;
+  if (showcase) out.showcase = showcase;
   return { ok: true, value: out };
 }
 

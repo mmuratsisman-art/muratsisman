@@ -1,10 +1,11 @@
 import type { CaseStudy } from '@/types';
 import { isAccent } from '../validate/common';
+import { showcaseUrlOf } from '../validate/showcase';
 import { PROJECT_GRAPHICS, PROJECT_KINDS, PROJECT_SIZES, type ProjectDoc } from '../validate/projects';
 
 export const PROJECT_FIELDS = [
   'title', 'slug', 'subtitle', 'summary', 'accent', 'size', 'graphic', 'kind', 'type_label', 'category',
-  'project_status_label', 'project_status_accent', 'tags', 'coming_soon', 'sort_order', 'case_study',
+  'project_status_label', 'project_status_accent', 'tags', 'coming_soon', 'sort_order', 'case_study', 'showcase_url', 'showcase_url_initial',
 ] as const;
 export type ProjectFormValues = Record<(typeof PROJECT_FIELDS)[number], string>;
 
@@ -31,6 +32,9 @@ export function projectDocToFormValues(doc: ProjectDoc): ProjectFormValues {
     coming_soon: doc.coming_soon ? 'on' : '',
     sort_order: String(doc.sort_order),
     case_study: doc.case_study ? JSON.stringify(doc.case_study, null, 2) : '',
+    // Ayrı alan case_study'den türetilir (ikinci bir kaynak YOK); initial, formun yüklendiği andaki değerdir (değişti mi? karşılaştırması için).
+    showcase_url: showcaseUrlOf(doc.case_study),
+    showcase_url_initial: showcaseUrlOf(doc.case_study),
   };
 }
 

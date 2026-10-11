@@ -47,6 +47,8 @@ export interface CaseStudy {
   cases?: FeaturedCaseData[];
   /** Diyagram / vaka bloklarının hangi bölümden sonra render edileceği (section id). */
   slots?: { diagramAfter?: string; casesAfter?: string };
+  /** İsteğe bağlı harici demo / showcase bağlantısı (yalnızca https ve muratsisman.com.tr alt alan adları; bkz. cms/validate/showcase.ts). */
+  showcase?: { url: string };
 }
 
 export interface Project {

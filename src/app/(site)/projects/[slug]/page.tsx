@@ -12,6 +12,7 @@ import SectionBody from '@/components/project/SectionBody';
 import FlowDiagram from '@/components/project/FlowDiagram';
 import FeaturedCase from '@/components/project/FeaturedCase';
 import TagList from '@/components/project/TagList';
+import ShowcaseLink from '@/components/project/ShowcaseLink';
 import NextProject from '@/components/project/NextProject';
 
 type Params = { params: Promise<{ slug: string }> };
@@ -68,6 +69,8 @@ export default async function ProjectPage({ params }: Params) {
       >
         <TagList tags={cs.tags} />
       </SectionShell>
+
+      {cs.showcase && <ShowcaseLink url={cs.showcase.url} tone={(tagsIndex + 1) % 2 === 0 ? 'base' : 'alt'} />}
 
       {next && <NextProject project={next} />}
     </div>
