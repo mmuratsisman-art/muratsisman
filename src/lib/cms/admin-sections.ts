@@ -35,6 +35,14 @@ export const adminSections: AdminSectionInfo[] = [
     planned: ['Blok tabanlı editör (p, h, quote, list)', 'Okuma süresi', 'Etiketler', 'Draft → Preview → Published'],
   },
   {
+    href: '/admin/analytics',
+    label: 'İstatistikler',
+    description: 'Ziyaret istatistikleri',
+    phase: 'Analytics',
+    live: true,
+    planned: ['Sayfa görüntüleme', 'Günlük yaklaşık tekil ziyaretçi', 'Showcase tıklamaları'],
+  },
+  {
     href: '/admin/media',
     label: 'Medya',
     description: 'Görseller',

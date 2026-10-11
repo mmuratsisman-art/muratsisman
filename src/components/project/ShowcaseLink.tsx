@@ -6,13 +6,15 @@ interface Props {
   url: string;
   /** Üstündeki bölümle aynı ritmi sürdürmek için sayfa/önizleme tarafından hesaplanır. */
   tone: 'base' | 'alt';
+  /** Yalnızca public sayfada verilir: tıklama sayacı (HitBeacon) bu veri özniteliğini okur. Görünümü ve davranışı değiştirmez. */
+  slug?: string;
 }
 
 /**
  * Proje detayının sonunda isteğe bağlı harici showcase bağlantısı. Public sayfa VE admin önizlemesi bu TEK bileşeni kullanır.
  * Geçersiz/izin verilmeyen bir adres asla `href`'e girmez: bileşen hiçbir şey çizmez.
  */
-export default function ShowcaseLink({ url, tone }: Props) {
+export default function ShowcaseLink({ url, tone, slug }: Props) {
   const checked = checkShowcaseUrl(url);
   if (!checked.ok) return null;
   return (
@@ -24,6 +26,7 @@ export default function ShowcaseLink({ url, tone }: Props) {
         href={checked.url}
         target="_blank"
         rel="noopener noreferrer"
+        data-showcase-slug={slug}
         className="mt-8 inline-flex items-center gap-2 rounded-full bg-acid px-7 py-4 font-semibold text-ink transition hover:-translate-y-0.5"
       >
         VIEW PROJECT SHOWCASE <span aria-hidden>↗</span>

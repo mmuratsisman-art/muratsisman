@@ -80,3 +80,14 @@ Hayır, üç katmanda engellenir: (1) RLS `status = 'published'`, (2) taslak/yay
 - Site içeriği mutation çekirdeği (`site-actions-core.ts`) aynı ilkelerle yazılmıştır: anahtar sunucuda **allowlist** ile doğrulanır (`isSiteKey`), form alanları anahtara özel allowlist'ten okunur (sahte `role`/`isAdmin` yok sayılır), belge **sunucuda sıkı şekil doğrulamasından** geçer (bilinmeyen alan reddedilir; bağlantılar yalnızca `#`, `/yol`, `https:`, `mailto:`).
 - 0005 fonksiyonları `SECURITY DEFINER`, `search_path = ''`, her biri `is_admin()` ile **fail-closed**; `anon` için execute yok; `project_drafts` için RLS yalnızca admin. `_apply_project_doc` API rollerine kapalı. Service-role anahtarı yok.
 - Public site Supabase'e **bağlı değildir** (dosya tabanlı); admin'de yapılan hiçbir şey public içeriği etkilemez.
+
+## Ziyaretçi istatistikleri (Analytics, migration 0007)
+
+Ayrıntı: [`ANALYTICS.md`](./ANALYTICS.md). Güvenlik açısından özet:
+
+- **Varsayılan KAPALI.** Endpoint, etkinleştirme bayrakları ve sunucu sırları olmadan veri yazmaz; tarayıcı beacon'ı derleme bayrağı olmadan yüklenmez.
+- **`anon` için analytics yazma/okuma yok** (tablo ve fonksiyon). Yeni tablolarda RLS açık, politika yok, API rollerine `REVOKE ALL`. Fonksiyonlar `SECURITY DEFINER` + `search_path = ''`; `record_hit` yalnızca `analytics_writers` kaydındaki **admin olmayan** hesaba, `analytics_summary` yalnızca `is_admin()` hesabına çalışır (fail-closed). Admin hesabı yazıcı olamaz.
+- **Service-role anahtarı uygulamaya girmez** (bu özellik için de). Yeni sunucu sırları: `ANALYTICS_HASH_SECRET`, `ANALYTICS_WRITER_EMAIL`, `ANALYTICS_WRITER_PASSWORD` (`NEXT_PUBLIC_` önekli DEĞİL; Vercel'de yalnızca sunucu tarafı).
+- **Yazıcı hesabı yetkisi dardır:** yalnızca `record_hit()` ve (her `authenticated` gibi) yayınlanmış içeriği okuma. Mevcut CMS yazma yolları (`is_admin()`) ve admin RPC'leri ona kapalıdır; bu `rls_smoke_analytics.sql` ile her fonksiyon için sınanır. İptal: `analytics_writers` satırını silmek (anında).
+- **Sahte isteklerle sayım şişirilmesi tamamen önlenemez** (bkz. ANALYTICS.md §5). `ANALYTICS_WAF_CONFIRMED` gerçek bir WAF doğrulaması değil, manuel onay bayrağıdır.
+- **Gizlilik:** IP, User-Agent, hash ve ziyaretçi kimliği saklanmaz; çerez/depolama yok; DNT/GPC saygı görür.

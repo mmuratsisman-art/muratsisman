@@ -70,7 +70,7 @@ export default async function ProjectPage({ params }: Params) {
         <TagList tags={cs.tags} />
       </SectionShell>
 
-      {cs.showcase && <ShowcaseLink url={cs.showcase.url} tone={(tagsIndex + 1) % 2 === 0 ? 'base' : 'alt'} />}
+      {cs.showcase && <ShowcaseLink url={cs.showcase.url} slug={project.slug} tone={(tagsIndex + 1) % 2 === 0 ? 'base' : 'alt'} />}
 
       {next && <NextProject project={next} />}
     </div>
