@@ -1,6 +1,7 @@
 import type { Accent, CaseStudy, ProjectGraphicKind, ProjectKind, ProjectSize } from '@/types';
 import { isSlug, slugify } from '../slug';
 import { parseCaseStudyText } from './case-study';
+import { mergeShowcaseField } from './showcase';
 import { clean, hasControlChars, isAccent, parseOptionalInt, parseTags, type Errors, type ValidationMode, type ValidationResult } from './common';
 
 export const PROJECT_SIZES: readonly ProjectSize[] = ['feature', 'standard', 'teaser'];
@@ -89,7 +90,10 @@ export function validateProjectInput(raw: ProjectRaw, mode: ValidationMode): Val
   const sort = parseOptionalInt(raw.sort_order ?? '', 0, PROJECT_LIMITS.sortMax);
   if (!sort.ok) errors.sort_order = `Sıra 0–${PROJECT_LIMITS.sortMax} arası tam sayı olmalı.`;
 
-  const cs = parseCaseStudyText(raw.case_study ?? '');
+  // Ayrı "Demo / Showcase URL" alanı, case_study JSON'una YALNIZCA alan değiştirilmişse uygulanır (bkz. showcase.ts).
+  const merged = mergeShowcaseField(raw.case_study ?? '', raw.showcase_url, raw.showcase_url_initial, comingSoon);
+  if (!merged.ok) errors.showcase_url = merged.error;
+  const cs = parseCaseStudyText(merged.ok ? merged.caseText : (raw.case_study ?? ''));
   if (!cs.ok) errors.case_study = cs.error;
   else if (publish && !comingSoon && cs.value === null) errors.case_study = 'Yayınlamak için case study (JSON) gerekli.';
 
