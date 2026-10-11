@@ -31,23 +31,50 @@ const okCs = (raw: ProjectRaw, mode: 'draft' | 'publish' = 'draft') => {
 const stableWithout = (cs: unknown) => { const o = JSON.parse(JSON.stringify(cs)); delete o.showcase; return o; };
 
 async function main() {
-  /* ── URL kuralı ── */
-  await check('S1 geçerli: https + muratsisman.com.tr ve gerçek alt alan adları', () => {
-    for (const u of [QMS, 'https://quality.muratsisman.com.tr', 'https://muratsisman.com.tr/x?a=1#b', 'https://a.b.muratsisman.com.tr/p', 'https://QUALITY.MuratSisman.com.TR/']) {
-      const r = checkShowcaseUrl(u); assert.ok(r.ok, u);
-    }
+  /* ── URL kuralı: açık HTTPS politikası ── */
+  await check('S1 geçerli: herkese açık https alan adları (www.yakala.com.tr, muratsisman.com.tr ve alt alan adları, sorgu/fragment)', () => {
+    for (const u of [
+      QMS, 'https://quality.muratsisman.com.tr', 'https://migration.muratsisman.com.tr/', 'https://muratsisman.com.tr/x?a=1#b', 'https://a.b.muratsisman.com.tr/p', 'https://QUALITY.MuratSisman.com.TR/',
+      'https://www.yakala.com.tr/', 'https://yakala.com.tr', 'https://example.org/', 'https://demo.some-project.dev/yol/?x=1&y=2#bolum', 'https://yakala.com.tr:443/',
+    ]) { const r = checkShowcaseUrl(u); assert.ok(r.ok, u); }
     const r = checkShowcaseUrl('https://Quality.muratsisman.com.tr'); assert.ok(r.ok && r.url === QMS);
   });
-  await check('S2 reddedilir: http, javascript:, data:, benzer alan adları, kullanıcı/parola, port, IP, boşluk, punycode, uzun', () => {
+  await check('S2 reddedilir: http/javascript:/data:/ftp:, userinfo, port, localhost, IP (v4 sayısal biçimler ve IPv6), iç ağ adları, punycode, noktalı, boşluk, uzun', () => {
     const bad = [
-      '', ' ', 'http://quality.muratsisman.com.tr/', 'javascript:alert(1)', 'data:text/html,x', 'ftp://quality.muratsisman.com.tr/', '//quality.muratsisman.com.tr', '/relative', 'quality.muratsisman.com.tr',
-      'https://evilmuratsisman.com.tr/', 'https://muratsisman.com.tr.evil.com/', 'https://muratsisman.com/', 'https://example.com/', 'https://muratsisman.com.tr.',
-      'https://user@quality.muratsisman.com.tr/', 'https://user:pw@quality.muratsisman.com.tr/', 'https://quality.muratsisman.com.tr:8443/', 'https://127.0.0.1/',
-      'https://quality.muratsisman.com.tr/a b', ' https://quality.muratsisman.com.tr/', 'https://quality.muratsisman.com.tr/\u0000', 'https://evil.com\\@quality.muratsisman.com.tr/',
-      'https://xn--quality-x.muratsisman.com.tr/', 'https://qüality.muratsisman.com.tr/', 'https://-a.muratsisman.com.tr/', 'https://a..muratsisman.com.tr/',
-      'https://quality.muratsisman.com.tr/' + 'a'.repeat(300),
+      '', ' ', 'http://www.yakala.com.tr/', 'http://quality.muratsisman.com.tr/', 'javascript:alert(1)', 'JAVASCRIPT:alert(1)', 'data:text/html,x', 'ftp://www.yakala.com.tr/', 'file:///etc/passwd', '//www.yakala.com.tr', '/relative', 'www.yakala.com.tr',
+      'https://user@www.yakala.com.tr/', 'https://user:pw@www.yakala.com.tr/', 'https://www.yakala.com.tr:8443/', 'https://www.yakala.com.tr:80/',
+      'https://localhost/', 'https://localhost:3000/', 'https://foo.localhost/', 'https://127.0.0.1/', 'https://2130706433/', 'https://0x7f.1/', 'https://0177.0.0.1/', 'https://1.2.3/', 'https://10.0.0.1/', 'https://192.168.1.1/', 'https://169.254.169.254/', 'https://[::1]/', 'https://[2001:db8::1]/',
+      'https://intranet/', 'https://printer.local/', 'https://app.internal/', 'https://x.intranet/', 'https://nas.lan/', 'https://router.home/', 'https://svc.corp/', 'https://a.test/', 'https://a.example/', 'https://a.invalid/', 'https://1.0.0.127.in-addr.arpa/', 'https://abc.onion/',
+      'https://www.yakala.com.tr./', 'https://xn--ykala-4ve.com.tr/', 'https://y\u0430kala.com.tr/', 'https://q\u00fcality.muratsisman.com.tr/', 'https://-a.yakala.com.tr/', 'https://a..yakala.com.tr/', 'https://yakala_x.com.tr/',
+      'https://www.yakala.com.tr/a b', ' https://www.yakala.com.tr/', 'https://www.yakala.com.tr/\u0000', 'https://evil.com\\@www.yakala.com.tr/', 'https://', 'https:///www.yakala.com.tr', 'https://intranetsrv/', 'https://foo/',
+      'https://www.yakala.com.tr/' + 'a'.repeat(300),
     ];
     for (const u of bad) assert.equal(checkShowcaseUrl(u).ok, false, JSON.stringify(u));
+  });
+  await check('S2b GERİYE UYUMLULUK: eski kuralın (yalnız muratsisman.com.tr) kabul ettiği her adres, AYNI sonuçla kabul edilmeye devam eder', () => {
+    const oldRule = (input: string): string | null => {
+      if (!input || input.length > 300 || /[\s\u0000-\u001F\u007F\\]/.test(input)) return null;
+      let u: URL; try { u = new URL(input); } catch { return null; }
+      if (u.protocol !== 'https:' || u.username || u.password || u.port) return null;
+      const h = u.hostname;
+      if (!(h === 'muratsisman.com.tr' || h.endsWith('.muratsisman.com.tr'))) return null;
+      return h.split('.').every((l) => /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(l) && !l.startsWith('xn--')) ? u.href : null;
+    };
+    const samples = [QMS, 'https://quality.muratsisman.com.tr', 'https://migration.muratsisman.com.tr/', 'https://muratsisman.com.tr', 'https://muratsisman.com.tr/x?a=1#b', 'https://a.b.muratsisman.com.tr/p/', 'https://QUALITY.MuratSisman.com.TR/', 'https://x.muratsisman.com.tr:443/', 'http://x.muratsisman.com.tr/', 'https://evilmuratsisman.com.tr/', 'https://muratsisman.com.tr.evil.com/', 'https://xn--a.muratsisman.com.tr/', 'https://u@x.muratsisman.com.tr/'];
+    let accepted = 0;
+    for (const s of samples) {
+      const old = oldRule(s); const now = checkShowcaseUrl(s);
+      if (old !== null) { accepted += 1; assert.ok(now.ok && now.url === old, s); }
+    }
+    assert.ok(accepted >= 7);
+  });
+  await check('S2c NORMALİZASYON: kök adreste sondaki / EKLENİR (kaldırılmaz); alt yol/sorgu/fragment korunur; :443 silinir; idempotent', () => {
+    const n = (u: string) => { const r = checkShowcaseUrl(u); assert.ok(r.ok, u); return r.url; };
+    assert.equal(n('https://www.yakala.com.tr'), 'https://www.yakala.com.tr/');
+    assert.equal(n('https://www.yakala.com.tr/a/'), 'https://www.yakala.com.tr/a/');
+    assert.equal(n('https://www.yakala.com.tr/a'), 'https://www.yakala.com.tr/a');
+    assert.equal(n('https://WWW.Yakala.com.tr:443/x?q=1#f'), 'https://www.yakala.com.tr/x?q=1#f');
+    for (const u of ['https://www.yakala.com.tr', QMS, 'https://a.dev/p/?x=1#y']) assert.equal(n(n(u)), n(u));
   });
 
   /* ── validateCaseStudy ── */
@@ -67,7 +94,8 @@ async function main() {
   await check('S5 public okuma: yayınlanmış satırda geçerli showcase görünür; geçersiz URL satırı ATLANIR (null); showcase olmayan aynı', () => {
     const row = (cs: unknown) => ({ ...projectToInsert(real, 0, 'published'), published_at: '2026-01-01T00:00:00Z', case_study: cs });
     assert.equal(projectFromRow(row({ ...baseCs(), showcase: { url: QMS } }))?.caseStudy?.showcase?.url, QMS);
-    assert.equal(projectFromRow(row({ ...baseCs(), showcase: { url: 'https://evil.example/' } })), null);
+    assert.equal(projectFromRow(row({ ...baseCs(), showcase: { url: 'http://www.yakala.com.tr/' } })), null); // MEVCUT davranış: case_study bütün olarak doğrulandığı için geçersiz URL projeyi atlatır (bkz. docs §9.1)
+    assert.equal(projectFromRow(row({ ...baseCs(), showcase: { url: 'https://www.yakala.com.tr/' } }))?.caseStudy?.showcase?.url, 'https://www.yakala.com.tr/');
     assert.deepEqual(projectFromRow(row(baseCs()))?.caseStudy, real.caseStudy);
   });
 
@@ -79,6 +107,13 @@ async function main() {
     const doc = { ...emptyProjectDoc(), case_study: cs };
     assert.equal(projectDocToFormValues(doc).showcase_url, QMS);
     assert.equal(projectDocToFormValues(doc).showcase_url_initial, QMS);
+  });
+  await check('S6b form: https://www.yakala.com.tr/ kaydedilir (taslak ve yayın modu), JSON korunur; sabit alan adı izni gerekmez', () => {
+    for (const mode of ['draft', 'publish'] as const) {
+      const cs = okCs(rawFor({ showcase_url: 'https://www.yakala.com.tr/' }), mode);
+      assert.equal(cs?.showcase?.url, 'https://www.yakala.com.tr/');
+      assert.deepEqual(stableWithout(cs), stableWithout(real.caseStudy));
+    }
   });
   await check('S7 DEĞİŞTİR: mevcut bağlantı yeni değerle değişir; JSON korunur', () => {
     const doc = { case_study: { ...baseCs(), showcase: { url: QMS } } };
@@ -114,7 +149,9 @@ async function main() {
   await check('S11 alan hataları showcase_url altında: geçersiz URL, JSON yok iken ekleme, coming_soon; JSON bozuksa case_study hatası', () => {
     const err = (raw: ProjectRaw) => { const r = validateProjectInput(raw, 'draft'); assert.ok(!r.ok); return r.errors; };
     assert.ok(err(rawFor({ showcase_url: 'http://quality.muratsisman.com.tr/' })).showcase_url);
-    assert.ok(err(rawFor({ showcase_url: 'https://example.com/' })).showcase_url);
+    assert.ok(err(rawFor({ showcase_url: 'https://localhost/' })).showcase_url);
+    assert.ok(err(rawFor({ showcase_url: 'https://127.0.0.1/' })).showcase_url);
+    assert.ok(err(rawFor({ showcase_url: 'javascript:alert(1)' })).showcase_url);
     assert.ok(err(rawFor({ showcase_url: QMS, case_study: '' })).showcase_url);
     assert.ok(err(rawFor({ showcase_url: QMS, coming_soon: 'on' })).showcase_url);
     const e = err(rawFor({ showcase_url: QMS, case_study: '{bozuk' })); assert.ok(e.case_study && !e.showcase_url);

@@ -30,7 +30,7 @@ const HINT = {
   tags: 'Virgülle ayırın (en fazla 12).',
   sort: 'Küçük sayı önce gelir (0–9999).',
   comingSoon: '“Çok yakında” projeler detay sayfası olmayan yer tutucu karttır; yalnızca başlık gerekir.',
-  showcase: 'İsteğe bağlı. Proje sayfasının sonunda “VIEW PROJECT SHOWCASE” bağlantısı olarak görünür. Yalnızca https:// ve muratsisman.com.tr (ya da alt alan adı). Kutuyu boşaltıp kaydetmek bağlantıyı kaldırır; hiç dokunmazsanız mevcut bağlantı korunur. Aynı değer case study JSON’unda showcase.url olarak saklanır.',
+  showcase: 'İsteğe bağlı. Proje sayfasının sonunda “VIEW PROJECT SHOWCASE” bağlantısı olarak görünür. Yalnızca herkese açık HTTPS bağlantıları. Bağlantının doğruluğunu kontrol edin. Kutuyu boşaltıp kaydetmek bağlantıyı kaldırır; hiç dokunmazsanız mevcut bağlantı korunur. Aynı değer case study JSON’unda showcase.url olarak saklanır.',
   caseStudy: 'Vaka çalışması içeriği JSON olarak. Geçerli yapıya uymayan JSON kaydedilmez. Yayınlamak için gerekli (Çok yakında projeler hariç).',
 } as const;
 
@@ -137,7 +137,7 @@ export default function ProjectForm({ mode, action, initial, id, expectedDraftUp
 
       <Field id="proj-showcase" label="DEMO / SHOWCASE URL (İSTEĞE BAĞLI)" hint={HINT.showcase} error={err.showcase_url}>
         <input type="hidden" name="showcase_url_initial" value={initial.showcase_url_initial} />
-        <input id="proj-showcase" name="showcase_url" type="url" inputMode="url" autoComplete="off" spellCheck={false} placeholder="https://…muratsisman.com.tr/" defaultValue={val('showcase_url')} maxLength={300} aria-invalid={!!err.showcase_url} aria-describedby={describedBy('proj-showcase', HINT.showcase, err.showcase_url)} className={`${inputClass} font-mono`} />
+        <input id="proj-showcase" name="showcase_url" type="url" inputMode="url" autoComplete="off" spellCheck={false} placeholder="https://…" defaultValue={val('showcase_url')} maxLength={300} aria-invalid={!!err.showcase_url} aria-describedby={describedBy('proj-showcase', HINT.showcase, err.showcase_url)} className={`${inputClass} font-mono`} />
       </Field>
 
       <Field id="proj-case" label="CASE STUDY (JSON)" hint={HINT.caseStudy} error={err.case_study}>

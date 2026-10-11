@@ -4,26 +4,31 @@
  * Bağımlılıksız ve saf (Next/Supabase/ağ yok).
  */
 
-/** İzin verilen ana alan adı ve onun gerçek alt alan adları. Başka bir ana alan adı için burası tek değişiklik noktasıdır. */
-export const SHOWCASE_HOST = 'muratsisman.com.tr';
 export const SHOWCASE_URL_MAX = 300;
 
 const LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+/** Son etiket (TLD) yalnızca harf olmalı: `127.0.0.1`, `2130706433`, `0x7f.1`, `1.2.3` gibi sayısal/IP biçimlerini eler. */
+const TLD = /^[a-z]{2,}$/;
 const UNSAFE = /[\s\u0000-\u001F\u007F\\]/;
+/** Herkese açık internette çözümlenmeyen / iç ağ ve ayrılmış son etiketler. */
+const RESERVED_TLDS: ReadonlySet<string> = new Set(['localhost', 'local', 'internal', 'intranet', 'lan', 'home', 'corp', 'test', 'example', 'invalid', 'arpa', 'onion']);
 
 export type ShowcaseUrlResult = { ok: true; url: string } | { ok: false; error: string };
 
 /**
- * Yalnızca https ve `muratsisman.com.tr` ya da `*.muratsisman.com.tr`.
- * Reddedilir: http/javascript:/data:, kullanıcı adı-parola, özel port, IP, boşluk/kontrol karakteri/ters eğik çizgi, noktayla biten ya da
- * `xn--` (punycode) etiketli adlar, benzer alan adları (`evilmuratsisman.com.tr`, `muratsisman.com.tr.evil.com`), 300 karakter üstü.
- * Başarılıysa tarayıcının ayrıştırdığı BİÇİM (`URL.href`) döner: karar, gerçekten gidilecek ana makine adı üzerinden verilir.
+ * Herkese açık bir alan adı üzerinde yalnızca `https://` bağlantıları (alan adı izin listesi YOKTUR).
+ * Reddedilir: http/javascript:/data:/ftp:, protokolsüz ve göreli adresler, kullanıcı adı-parola, özel port, IP (v4 sayısal biçimleri dahil) ve IPv6 literalleri,
+ * tek etiketli adlar, `localhost`/`.local`/`.internal`/`.intranet`/`.lan`/`.home`/`.corp`/`.test`/`.example`/`.invalid`/`.arpa`/`.onion`, noktayla biten adlar,
+ * `xn--` (punycode/IDN) etiketleri, boşluk/kontrol karakteri/ters eğik çizgi, 300 karakter üstü. Sorgu (`?a=1`) ve fragment (`#b`) serbesttir.
+ * Başarılıysa tarayıcının ayrıştırdığı BİÇİM (`URL.href`: küçük harf, kök adreste `/`, `:443` silinir) döner; karar, gerçekten gidilecek ana makine adı üzerinden verilir.
+ * NOT: Kural, alan adının size ait olup olmadığını bilemez; bağlantının doğruluğunu editör kontrol eder.
  */
 export function checkShowcaseUrl(input: string): ShowcaseUrlResult {
   const bad = (error: string): ShowcaseUrlResult => ({ ok: false, error });
   if (typeof input !== 'string' || input === '') return bad('Bağlantı boş olamaz.');
   if (input.length > SHOWCASE_URL_MAX) return bad(`Bağlantı en fazla ${SHOWCASE_URL_MAX} karakter olabilir.`);
   if (UNSAFE.test(input)) return bad('Bağlantıda boşluk, kontrol karakteri veya ters eğik çizgi olamaz.');
+  if (/^https:\/\/\//i.test(input)) return bad('Geçerli bir bağlantı değil (https:// sonrasında ek eğik çizgi olamaz).');
   let u: URL;
   try {
     u = new URL(input);
@@ -34,10 +39,12 @@ export function checkShowcaseUrl(input: string): ShowcaseUrlResult {
   if (u.username !== '' || u.password !== '') return bad('Bağlantıda kullanıcı adı veya parola olamaz.');
   if (u.port !== '') return bad('Özel port kabul edilmez.');
   const host = u.hostname;
-  const ok = host === SHOWCASE_HOST || host.endsWith(`.${SHOWCASE_HOST}`);
-  if (!ok) return bad(`Yalnızca ${SHOWCASE_HOST} ve alt alan adları kabul edilir.`);
+  if (host.startsWith('[')) return bad('IP adresi kabul edilmez; herkese açık bir alan adı kullanın.');
   const labels = host.split('.');
-  if (!labels.every((l) => LABEL.test(l) && !l.startsWith('xn--'))) return bad('Geçersiz alan adı.');
+  if (labels.length < 2 || !labels.every((l) => LABEL.test(l) && !l.startsWith('xn--'))) return bad('Geçerli, herkese açık bir alan adı olmalı (IP, tek etiketli ad, noktayla biten veya xn-- adlar kabul edilmez).');
+  const tld = labels[labels.length - 1];
+  if (!TLD.test(tld)) return bad('IP adresi kabul edilmez; herkese açık bir alan adı kullanın.');
+  if (RESERVED_TLDS.has(tld)) return bad('İç ağ veya ayrılmış alan adları (localhost, .local, .internal vb.) kabul edilmez.');
   return { ok: true, url: u.href };
 }
 
