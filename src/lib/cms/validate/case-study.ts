@@ -183,6 +183,24 @@ export function validateCaseStudy(value: unknown): { ok: true; value: CaseStudy 
   return { ok: true, value: out };
 }
 
+/**
+ * YALNIZCA public okuma ve admin önizlemesi içindir (kaydetme/yayınlama bunu KULLANMAZ; onlar `validateCaseStudy` ile sıkı kalır).
+ * Önce sıkı doğrulama çalışır; geçerliyse sonuç AYNEN döner. Başarısızsa ve hata yalnızca `showcase` alanındansa
+ * (showcase çıkarılmış kopya geçerliyse) proje korunur, showcase atlanır ve neden `showcaseError` ile bildirilir.
+ * Başka bir alan da geçersizse sıkı hata aynen döner (maskeleme yok). Girdi nesnesi değiştirilmez; veritabanına yazılmaz.
+ */
+export function validateCaseStudyIsolatingShowcase(
+  value: unknown,
+): { ok: true; value: CaseStudy; showcaseError?: string } | { ok: false; error: string } {
+  const strict = validateCaseStudy(value);
+  if (strict.ok || !isObj(value) || value.showcase === undefined) return strict;
+  const rest: Obj = { ...value };
+  delete rest.showcase;
+  const retry = validateCaseStudy(rest);
+  if (!retry.ok) return strict;
+  return { ok: true, value: retry.value, showcaseError: strict.error };
+}
+
 /** Metin → CaseStudy | null (boş = null). JSON sözdizimi hatası ve şekil hatası Türkçe, ham ayrıntı sızdırmadan döner. */
 export function parseCaseStudyText(text: string): { ok: true; value: CaseStudy | null } | { ok: false; error: string } {
   const t = text.trim();

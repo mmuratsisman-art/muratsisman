@@ -1,6 +1,6 @@
 import type { CaseStudy, CaseStudyProject, Project } from '@/types';
 import { projectDocToFormValues } from '../admin/project-form';
-import { validateCaseStudy } from '../validate/case-study';
+import { validateCaseStudyIsolatingShowcase } from '../validate/case-study';
 import { validateProjectInput, type ProjectDoc } from '../validate/projects';
 import { pad2 } from './common';
 
@@ -67,9 +67,11 @@ export function buildProjectPreview(doc: ProjectDoc): ProjectPreviewModel {
     problems.push('Case study yok: public sitede bu proje için detay sayfası oluşmaz (404).');
   } else {
     // Güvenilmeyen jsonb: bileşenlere vermeden önce şekli doğrula (bozuk şekil render'ı çökertebilir).
-    const v = validateCaseStudy(doc.case_study);
-    if (v.ok) caseStudy = v.value;
-    else problems.push(`Case study geçersiz, önizleme çizilemiyor: ${v.error}`);
+    const v = validateCaseStudyIsolatingShowcase(doc.case_study);
+    if (v.ok) {
+      caseStudy = v.value;
+      if (v.showcaseError) warnings.push(`Showcase bağlantısı geçersiz; public sitede gösterilmez, kaydetme/yayınlama bu haliyle reddedilir: ${v.showcaseError}`);
+    } else problems.push(`Case study geçersiz, önizleme çizilemiyor: ${v.error}`);
   }
 
   const project = docToProject(doc, caseStudy);

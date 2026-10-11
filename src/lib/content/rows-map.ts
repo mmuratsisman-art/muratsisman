@@ -2,7 +2,7 @@ import type { Accent, LabEntry, NoteBlock, NoteEntry, Project } from '@/types';
 import { recordToLabEntry, recordToNote, recordToProject } from '@/lib/cms/mappers';
 import type { LabEntryRecord, NoteRecord, ProjectRecord } from '@/lib/cms/types';
 import { isValidSlug } from '@/lib/cms/status';
-import { validateCaseStudy } from '@/lib/cms/validate/case-study';
+import { validateCaseStudyIsolatingShowcase } from '@/lib/cms/validate/case-study';
 import { isAccent } from '@/lib/cms/validate/common';
 import { LAB_STATUSES, LAB_TYPES, STORY_KEYS } from '@/lib/cms/validate/lab';
 import { PROJECT_GRAPHICS, PROJECT_KINDS, PROJECT_SIZES } from '@/lib/cms/validate/projects';
@@ -29,7 +29,8 @@ export function projectFromRow(row: unknown): Project | null {
   if (!nullableStr(r.project_status_label) || !(r.project_status_accent === null || accent(r.project_status_accent)) || !nullableStr(r.seo_title) || !nullableStr(r.seo_description)) return null;
   let caseStudy = null;
   if (r.case_study !== null && r.case_study !== undefined) {
-    const v = validateCaseStudy(r.case_study);
+    // Geçersiz showcase.url projeyi gizlemez: yalnızca bağlantı atlanır (diğer alanlar hâlâ katı doğrulanır).
+    const v = validateCaseStudyIsolatingShowcase(r.case_study);
     if (!v.ok) return null;
     caseStudy = v.value;
   }
