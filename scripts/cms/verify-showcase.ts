@@ -8,7 +8,8 @@ import { readFileSync } from 'node:fs';
 import { projects } from '@/data/projects';
 import { projectToInsert } from '@/lib/cms/mappers';
 import { emptyProjectDoc, PROJECT_FIELDS, projectDocToFormValues, coerceProjectDoc } from '@/lib/cms/admin/project-form';
-import { validateCaseStudy } from '@/lib/cms/validate/case-study';
+import { validateCaseStudy, validateCaseStudyIsolatingShowcase } from '@/lib/cms/validate/case-study';
+import { buildProjectPreview } from '@/lib/cms/preview/project';
 import { validateProjectInput, type ProjectDoc, type ProjectRaw } from '@/lib/cms/validate/projects';
 import { checkShowcaseUrl, mergeShowcaseField, showcaseUrlOf } from '@/lib/cms/validate/showcase';
 import { projectFromRow } from '@/lib/content/rows-map';
@@ -91,12 +92,81 @@ async function main() {
       assert.equal(validateCaseStudy({ ...baseCs(), showcase: s }).ok, false, JSON.stringify(s));
     }
   });
-  await check('S5 public okuma: yayınlanmış satırda geçerli showcase görünür; geçersiz URL satırı ATLANIR (null); showcase olmayan aynı', () => {
+  await check('S5 public okuma: yayınlanmış satırda geçerli showcase görünür; geçersiz URL olsa da proje görünür kalır, bağlantı yok; showcase olmayan aynı', () => {
     const row = (cs: unknown) => ({ ...projectToInsert(real, 0, 'published'), published_at: '2026-01-01T00:00:00Z', case_study: cs });
     assert.equal(projectFromRow(row({ ...baseCs(), showcase: { url: QMS } }))?.caseStudy?.showcase?.url, QMS);
-    assert.equal(projectFromRow(row({ ...baseCs(), showcase: { url: 'http://www.yakala.com.tr/' } })), null); // MEVCUT davranış: case_study bütün olarak doğrulandığı için geçersiz URL projeyi atlatır (bkz. docs §9.1)
+    const bad = projectFromRow(row({ ...baseCs(), showcase: { url: 'http://www.yakala.com.tr/' } })); // geçersiz URL projeyi GİZLEMEZ (bkz. S18)
+    assert.ok(bad);
+    assert.equal(bad.caseStudy?.showcase, undefined);
     assert.equal(projectFromRow(row({ ...baseCs(), showcase: { url: 'https://www.yakala.com.tr/' } }))?.caseStudy?.showcase?.url, 'https://www.yakala.com.tr/');
     assert.deepEqual(projectFromRow(row(baseCs()))?.caseStudy, real.caseStudy);
+  });
+
+  /* ── Hata izolasyonu: geçersiz showcase.url projeyi gizlemez ── */
+  const BAD_SHOWCASES: unknown[] = [
+    { url: 'http://www.yakala.com.tr/' }, { url: 'javascript:alert(1)' }, { url: 'https://user:pw@example.org/' }, { url: 'https://localhost/' },
+    { url: 'https://127.0.0.1/' }, { url: 'https://' + 'a'.repeat(300) + '.com/' }, { url: 1 }, {}, { url: QMS, label: 'x' }, 'str', null, [],
+  ];
+  const pubRow = (cs: unknown) => ({ ...projectToInsert(real, 0, 'published'), published_at: '2026-01-01T00:00:00Z', case_study: cs });
+  await check('S18 public: her geçersiz showcase türünde proje döner, showcase yok, diğer tüm alanlar geçerli satırla birebir aynı', () => {
+    const clean = projectFromRow(pubRow(baseCs()));
+    assert.ok(clean);
+    for (const s of BAD_SHOWCASES) {
+      const p = projectFromRow(pubRow({ ...baseCs(), showcase: s }));
+      assert.ok(p, JSON.stringify(s));
+      assert.equal(p.caseStudy?.showcase, undefined, JSON.stringify(s));
+      assert.deepEqual(p, clean, JSON.stringify(s));
+    }
+  });
+  await check('S19 maskeleme yok: showcase geçersiz + başka alan geçersiz → hâlâ null / ok:false (hata başka alanı da söyler)', () => {
+    const cs = { ...baseCs(), showcase: { url: 'http://x.com/' }, tags: 'bozuk' };
+    assert.equal(projectFromRow(pubRow(cs)), null);
+    const r = validateCaseStudyIsolatingShowcase(cs);
+    assert.equal(r.ok, false);
+    assert.ok(!r.ok && r.error.includes('tags'));
+    assert.equal(projectFromRow(pubRow({ ...baseCs(), sections: 'bozuk', showcase: { url: QMS } })), null); // geçerli showcase başka hatayı kurtarmaz
+    assert.equal(validateCaseStudyIsolatingShowcase(null).ok, false);
+    assert.equal(validateCaseStudyIsolatingShowcase([]).ok, false);
+  });
+  await check('S20 geçerli girdi aynen: izolasyonlu doğrulama = sıkı doğrulama; showcaseError yok; girdi nesnesi DEĞİŞMEZ', () => {
+    for (const cs of [baseCs(), { ...baseCs(), showcase: { url: QMS } }, { ...baseCs(), showcase: { url: 'https://www.yakala.com.tr/' } }]) {
+      const strict = validateCaseStudy(cs);
+      const iso = validateCaseStudyIsolatingShowcase(cs);
+      assert.deepEqual(iso, strict);
+      assert.equal('showcaseError' in iso, false);
+    }
+    for (const s of BAD_SHOWCASES) {
+      const input = { ...baseCs(), showcase: s };
+      const before = JSON.stringify(input);
+      const r = validateCaseStudyIsolatingShowcase(input);
+      assert.equal(JSON.stringify(input), before, 'girdi değişti');
+      assert.ok(r.ok && typeof r.showcaseError === 'string' && r.showcaseError.includes('showcase'));
+      assert.equal(validateCaseStudy(input).ok, false); // sıkı doğrulama (kaydetme/yayınlama yolu) hâlâ reddeder
+    }
+  });
+  await check('S21 önizleme: geçersiz URL → proje çizilebilir (case-study) + anlaşılır uyarı; başka hata → unrenderable; geçerli URL → uyarı yok', () => {
+    const doc = (cs: unknown): ProjectDoc => ({ ...emptyProjectDoc(), title: 'Test', slug: 'test', summary: 'özet', kind: 'personal', type_label: 'T', category: 'C', case_study: cs as ProjectDoc['case_study'] });
+    const m = buildProjectPreview(doc({ ...baseCs(), showcase: { url: 'http://www.yakala.com.tr/' } }));
+    assert.equal(m.kind, 'case-study');
+    assert.equal(m.kind === 'case-study' ? m.project.caseStudy.showcase : 'x', undefined);
+    assert.ok(m.warnings.some((w) => w.includes('Showcase bağlantısı geçersiz')));
+    assert.equal(buildProjectPreview(doc({ ...baseCs(), showcase: { url: 'http://x.com/' }, tags: 'bozuk' })).kind, 'unrenderable');
+    const ok = buildProjectPreview(doc({ ...baseCs(), showcase: { url: QMS } }));
+    assert.equal(ok.kind, 'case-study');
+    assert.equal(ok.kind === 'case-study' ? ok.project.caseStudy.showcase?.url : '', QMS);
+    assert.ok(!ok.warnings.some((w) => w.includes('Showcase bağlantısı geçersiz')));
+  });
+  await check('S22 kaydetme/yayınlama SIKI kalır: geçersiz showcase.url içeren JSON her iki modda reddedilir; yayın yolu izolasyonlu yardımcıyı kullanmaz', () => {
+    for (const mode of ['draft', 'publish'] as const) {
+      for (const s of [{ url: 'http://www.yakala.com.tr/' }, { url: 'https://localhost/' }]) {
+        const r = validateProjectInput(rawFor({}, { case_study: { ...baseCs(), showcase: s } }), mode);
+        assert.equal(r.ok, false, mode);
+      }
+    }
+    const src = (f: string) => readFileSync(f, 'utf8');
+    for (const f of ['src/lib/cms/validate/projects.ts', 'src/lib/cms/validate/showcase.ts', 'src/lib/cms/admin/project-form.ts']) {
+      assert.equal(/validateCaseStudyIsolatingShowcase/.test(src(f)), false, f);
+    }
   });
 
   /* ── Form alanı ↔ JSON birleştirmesi ── */
