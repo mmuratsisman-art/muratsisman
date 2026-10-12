@@ -16,7 +16,7 @@ export default async function SiteChrome({ children }: { children: ReactNode }) 
       </a>
       <Header brand={id.brand} />
       <main id="main">{children}</main>
-      <Footer name={id.name} domain={id.domain} />
+      <Footer name={id.name} domain={id.domain} brand={id.brand} />
     </>
   );
 }
