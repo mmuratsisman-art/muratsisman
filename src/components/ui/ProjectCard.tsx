@@ -4,6 +4,7 @@ import { ArrowUpRight } from 'lucide-react';
 import type { Project } from '@/types';
 import { accentVar } from '@/lib/accent';
 import { cn } from '@/lib/cn';
+import { isDerivedKindLabel, projectKindLabel } from '@/lib/project-kind';
 import ProjectGraphic from './ProjectGraphic';
 
 const sizeClass: Record<Project['size'], string> = {
@@ -20,6 +21,9 @@ const graphicClass: Record<Project['size'], string> = {
 
 export default function ProjectCard({ project }: { project: Project }) {
   const style = { ['--card-accent' as string]: accentVar[project.accent] } as CSSProperties;
+  const kindLabel = projectKindLabel(project);
+  // Türetilmiş etiket İngilizcedir: lang="en" olmadan <html lang="tr"> altında CSS uppercase "Experiment" -> "EXPERİMENT" yapar.
+  const derivedKind = isDerivedKindLabel(project);
   const base = cn('group project-card relative flex flex-col overflow-hidden rounded-3xl border border-fg/15 bg-card p-6 sm:p-8', sizeClass[project.size]);
 
   const content = (
@@ -31,10 +35,10 @@ export default function ProjectCard({ project }: { project: Project }) {
       <div className="relative flex items-start justify-between gap-4">
         <span className="flex flex-wrap items-center gap-x-2 font-mono text-[10px] leading-snug tracking-wider text-muted sm:text-xs sm:tracking-widest">
           <span>{project.comingSoon ? 'SOON' : project.index}</span>
-          {project.typeLabel && !project.comingSoon && (
+          {kindLabel && !project.comingSoon && (
             <>
               <span aria-hidden>·</span>
-              <span>{project.typeLabel}</span>
+              <span lang={derivedKind ? 'en' : undefined} className={derivedKind ? 'uppercase' : undefined}>{kindLabel}</span>
             </>
           )}
         </span>
@@ -66,7 +70,7 @@ export default function ProjectCard({ project }: { project: Project }) {
     return <div className={base} style={style}>{content}</div>;
   }
   return (
-    <Link href={`/projects/${project.slug}`} className={base} style={style} aria-label={`${project.title} — ${project.subtitle}`}>
+    <Link href={`/projects/${project.slug}`} className={base} style={style} aria-label={`${project.title} — ${project.subtitle}${kindLabel ? `, ${kindLabel}` : ''}`}>
       {content}
     </Link>
   );
