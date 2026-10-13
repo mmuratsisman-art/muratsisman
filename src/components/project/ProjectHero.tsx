@@ -3,8 +3,12 @@ import { ArrowLeft } from 'lucide-react';
 import type { CaseStudyProject } from '@/types';
 import StatusPill from '@/components/ui/StatusPill';
 import ProjectGraphic from '@/components/ui/ProjectGraphic';
+import { isDerivedKindLabel, projectKindLabel } from '@/lib/project-kind';
 
 export default function ProjectHero({ project }: { project: CaseStudyProject }) {
+  // Kartla aynı kaynak (src/lib/project-kind.ts). Türetilmiş etiket İngilizcedir: lang="en" olmadan <html lang="tr"> altında uppercase "Experiment" -> "EXPERİMENT" olur.
+  const kindLabel = projectKindLabel(project);
+  const derivedKind = isDerivedKindLabel(project);
   return (
     <section aria-labelledby="project-title" className="dot-grid relative overflow-hidden bg-hero">
       <div
@@ -21,7 +25,11 @@ export default function ProjectHero({ project }: { project: CaseStudyProject }) 
 
         <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-3 font-mono text-xs tracking-widest">
           <span className="text-muted">{project.index}</span>
-          <span className="rounded-full border border-fg/30 px-3 py-1">{project.typeLabel}</span>
+          {kindLabel && (
+            <span lang={derivedKind ? 'en' : undefined} className={derivedKind ? 'rounded-full border border-fg/30 px-3 py-1 uppercase' : 'rounded-full border border-fg/30 px-3 py-1'}>
+              {kindLabel}
+            </span>
+          )}
           {project.status && <StatusPill label={project.status.label} accent={project.status.accent} />}
         </div>
 
