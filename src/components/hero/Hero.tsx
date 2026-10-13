@@ -21,8 +21,13 @@ export default async function Hero() {
           <p className="mt-6 font-mono text-[11px] leading-relaxed tracking-[0.18em] text-muted sm:text-sm">{hero.roles}</p>
 
           <p className="mt-8 max-w-xl font-display text-2xl font-bold leading-tight sm:text-3xl">
-            {hero.message.map((line) => (
-              <span key={line} className="block">{line}</span>
+            {hero.message.map((line, i) => (
+              <span
+                key={i}
+                className={i === 0 ? 'block' : `${i === 1 ? 'mt-3' : 'mt-1.5'} block font-sans text-base font-normal leading-relaxed text-muted sm:text-lg`}
+              >
+                {line}
+              </span>
             ))}
           </p>
 

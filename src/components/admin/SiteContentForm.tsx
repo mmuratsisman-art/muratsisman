@@ -59,7 +59,7 @@ export default function SiteContentForm({ contentKey, action, initial, expectedD
             {f('last', 'last', 'BÜYÜK BAŞLIK · 2. SATIR', { max: 60 })}
           </div>
           {f('roles', 'roles', 'ROLLER', { max: 200, hint: 'Başlığın altındaki tek satır.' })}
-          {f('message', 'message', 'ANA MESAJ', { area: 4, hint: 'Her satır ayrı bir satır olarak görünür (en fazla 6 satır).' })}
+          {f('message', 'message', 'ANA MESAJ', { area: 4, hint: 'İlk satır büyük ana mesaj, sonraki satırlar daha küçük açıklama olarak gösterilir. Her satırı ayrı yazın (en fazla 6 satır).' })}
           <div className="grid gap-6 sm:grid-cols-2">
             {f('cta1l', 'cta_primary_label', 'BİRİNCİ DÜĞME · METİN', { max: 60 })}
             {f('cta1h', 'cta_primary_href', 'BİRİNCİ DÜĞME · BAĞLANTI', { max: 300, hint: '/#projects, /yol, https://… veya mailto:…' })}

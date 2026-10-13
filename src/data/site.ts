@@ -8,7 +8,7 @@ export const siteConfig = {
     first: 'MURAT',
     last: 'ŞİŞMAN',
     roles: 'Technology / AI / Infrastructure / Digital Products',
-    message: ['Fikirleri deniyorum.', 'Problemleri çözüyorum.', 'Dijital şeyler üretiyorum.'],
+    message: ['From real problems to working products.', 'Gerçek problemlerden yola çıkarak yapay zekâ destekli çözümler ve kendi dijital ürünlerimi geliştiriyorum.'],
     ctaPrimary: { label: 'Projeleri Keşfet', href: '/#projects' },
     ctaSecondary: { label: 'Hakkımda', href: '/#about' },
     concepts: ['BUILD', 'LEARN', 'AUTOMATE', 'IDEAS'],
