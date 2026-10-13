@@ -3,6 +3,7 @@
 import type { ProjectFormValues } from '@/lib/cms/admin/project-form';
 import type { FormState } from '@/lib/cms/admin/state';
 import { PROJECT_GRAPHICS, PROJECT_KINDS, PROJECT_SIZES } from '@/lib/cms/validate/projects';
+import { PROJECT_KIND_LABEL } from '@/lib/project-kind';
 import { describedBy, Field, inputClass } from './fields';
 import FormSelect from './FormSelect';
 import { PublishPanel, SaveBar } from './FormActions';
@@ -23,8 +24,8 @@ const HINT = {
   slugLocked: "Yayındaki içeriğin slug'ı değiştirilemez (adres kırılır). Değiştirmek için önce yayından kaldırın.",
   subtitle: 'Başlığın altındaki kısa tanım (en fazla 160 karakter).',
   summary: 'Kartta ve proje sayfasının girişinde görünen özet (en fazla 600 karakter). Yayınlamak için gerekli.',
-  kind: 'Proje türü. Yayınlamak için gerekli (Çok yakında projeler hariç).',
-  typeLabel: 'Kartta görünen etiket, ör. PERSONAL PROJECT. Yayınlamak için gerekli.',
+  kind: 'Proje türü; kart ve proje sayfasındaki tür etiketini belirler (Personal / Work / Experiment). Yayınlamak için gerekli (Çok yakında projeler hariç).',
+  typeLabel: 'Kart ve proje sayfasındaki tür etiketi normalde TÜR alanından üretilir. Bu alan yalnızca tür seçilmemişse veya bilinmiyorsa yedek olarak kullanılır. Yayınlamak için gerekli.',
   category: 'Ör. Affiliate Commerce Platform. Yayınlamak için gerekli.',
   pill: 'Proje sayfasındaki durum etiketi (isteğe bağlı), ör. ACTIVE DEVELOPMENT. Metin ve renk birlikte girilmelidir.',
   tags: 'Virgülle ayırın (en fazla 12).',
@@ -74,7 +75,7 @@ export default function ProjectForm({ mode, action, initial, id, expectedDraftUp
           <FormSelect id="proj-kind" name="kind" value={val('kind')} aria-describedby={describedBy('proj-kind', HINT.kind, err.kind)} className={inputClass}>
             <option value="">(seçilmedi)</option>
             {PROJECT_KINDS.map((k) => (
-              <option key={k} value={k}>{k}</option>
+              <option key={k} value={k}>{PROJECT_KIND_LABEL[k]}</option>
             ))}
           </FormSelect>
         </Field>

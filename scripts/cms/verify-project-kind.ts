@@ -1,5 +1,5 @@
 /**
- * PROJE VİTRİNİ 2.0 / FAZ 1B REGRESYON TESTİ. Next, Supabase ve veritabanı GEREKMEZ (saf fonksiyon + kaynak taraması).
+ * PROJE VİTRİNİ 2.0 / FAZ 1B + 1C-A REGRESYON TESTİ. Next, Supabase ve veritabanı GEREKMEZ (saf fonksiyon + kaynak taraması).
  *
  *   npx tsx scripts/cms/verify-project-kind.ts
  */
@@ -22,6 +22,7 @@ const root = process.cwd();
 const read = (p: string) => readFileSync(join(root, p), 'utf8');
 const card = read('src/components/ui/ProjectCard.tsx');
 const hero = read('src/components/project/ProjectHero.tsx');
+const form = read('src/components/admin/ProjectForm.tsx');
 const helper = read('src/lib/project-kind.ts');
 const bySlug = (s: string) => projects.find((p) => p.slug === s)!;
 
@@ -96,7 +97,45 @@ check('K15 kart düzeni korundu: link, ok butonu, ızgara sınıfları', () => {
   yes(/md:col-span-7 md:row-span-2/.test(card) && /md:col-span-5/.test(card) && /md:col-span-12/.test(card), 'sizeClass');
   yes(/flex flex-wrap items-center gap-x-2/.test(card), 'meta grubu');
 });
-check('K16 ProjectHero değişmedi (hâlâ typeLabel)', () => yes(/\{project\.typeLabel\}/.test(hero), 'hero typeLabel'));
+check('K16 hero ortak kaynağı kullanır, ham typeLabel basmaz (FAZ 1C-A)', () => {
+  yes(/from '@\/lib\/project-kind'/.test(hero), 'import yok');
+  yes(/projectKindLabel\(project\)/.test(hero) && /isDerivedKindLabel\(project\)/.test(hero), 'çağrılar yok');
+  yes(!/project\.typeLabel/.test(hero), 'ham typeLabel hâlâ kullanılıyor');
+  yes(/lang=\{derivedKind \? 'en' : undefined\}/.test(hero) && /derivedKind \? '[^']*\buppercase'/.test(hero), 'lang=en + uppercase yalnız türetilmişte yok');
+  yes(!/from '@\/data/.test(hero), '@/data import');
+});
+check('K16b hero: durum etiketi, başlık, açıklama, teknoloji etiketleri ve geri bağlantısı değişmedi', () => {
+  yes(/\{project\.status && <StatusPill label=\{project\.status\.label\} accent=\{project\.status\.accent\} \/>\}/.test(hero), 'StatusPill');
+  yes(/\{project\.title\}/.test(hero) && /\{project\.description\}/.test(hero) && /project\.subtitle\.toUpperCase\(\)/.test(hero), 'başlık/açıklama/alt başlık');
+  yes(/project\.tags\.map/.test(hero) && /href="\/#projects"/.test(hero), 'etiketler/geri bağlantısı');
+});
+check('K16c kart ve hero aynı projede aynı etiketi üretir (üç tür + yedek + eksik)', () => {
+  for (const p of projects.filter((x) => !x.comingSoon)) eq(projectKindLabel(p), PROJECT_KIND_LABEL[p.kind!], `kart/hero ${p.slug}`);
+  eq(projectKindLabel({ typeLabel: 'YEDEK' }), 'YEDEK', 'yedek');
+  eq(projectKindLabel({ kind: 'x' as unknown as ProjectKind, typeLabel: 'YEDEK' }), 'YEDEK', 'bilinmeyen kind');
+});
+check('K18 admin formu: tür seçenekleri anlaşılır adla, kaydedilen değer teknik (value) kalır', () => {
+  yes(/from '@\/lib\/project-kind'/.test(form), 'ortak kaynak import edilmemiş');
+  yes(/<option key=\{k\} value=\{k\}>\{PROJECT_KIND_LABEL\[k\]\}<\/option>/.test(form), 'seçenek biçimi (value={k}, metin=etiket)');
+  yes(/PROJECT_KINDS\.map/.test(form), 'seçenekler PROJECT_KINDS\'ten');
+  yes(/<option value="">\(seçilmedi\)<\/option>/.test(form), 'boş seçenek');
+  yes(/name="kind"/.test(form), 'alan adı');
+  eq(PROJECT_KINDS.map((k) => k), ['personal', 'work', 'ai-experiment'], 'teknik değerler');
+});
+check('K19 admin formu: typeLabel açıklaması yeni davranışı anlatır; alan ve zorunluluk korunur', () => {
+  const m = form.match(/typeLabel: '([^']*)'/);
+  yes(m, 'HINT.typeLabel yok');
+  yes(/TÜR alanından üretilir/.test(m![1]) && /yedek/.test(m![1]) && /tür seçilmemişse veya bilinmiyorsa/.test(m![1]), 'açıklama davranışı anlatmıyor');
+  yes(!/Kartta görünen etiket/.test(form), 'eski yanıltıcı metin duruyor');
+  yes(/Yayınlamak için gerekli\./.test(m![1]), 'zorunluluk notu');
+  yes(/name="type_label"/.test(form), 'type_label alanı kaldırılmış');
+  yes(/Yayınlamak için tür etiketi gerekli\./.test(read('src/lib/cms/validate/projects.ts')), 'validator zorunluluğu değişmiş');
+});
+check('K20 doğrulayıcı ve DB değerleri değişmedi (kind kümesi, status pill çifti)', () => {
+  const v = read('src/lib/cms/validate/projects.ts');
+  yes(/PROJECT_KINDS: readonly ProjectKind\[\] = \['personal', 'work', 'ai-experiment'\]/.test(v), 'PROJECT_KINDS');
+  yes(/errors\.project_status_accent = 'Durum etiketi için bir renk seçin\.'/.test(v), 'pill kuralı');
+});
 check('K17 yeni migration yok (0001–0007)', () => {
   const m = readdirSync(join(root, 'supabase/migrations')).filter((f) => !f.endsWith('_down.sql')).map((f) => f.slice(0, 4)).sort();
   eq(m, ['0001', '0002', '0003', '0004', '0005', '0006', '0007'], 'migrations');
@@ -108,4 +147,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`${passed} kontrol geçti, 0 başarısız.`);
-console.log('Tüm proje türü (FAZ 1B) kontrolleri geçti.');
+console.log('Tüm proje türü (FAZ 1B + 1C-A) kontrolleri geçti.');
