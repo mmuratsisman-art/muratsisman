@@ -15,7 +15,7 @@ export const siteConfig = {
   },
   about: {
     title: 'WHO IS MURAT?',
-    text: 'Teknolojiye, problemlere ve yeni fikirlere her zaman merakla yaklaşan, öğrenmeyi hiç bırakmayan bir üretici.',
+    text: 'Fikirleri çalışan dijital ürünlere dönüştürmeyi seviyorum.\n\nTeknoloji, yapay zekâ ve otomasyon benim için yalnızca araçlar. Asıl ilgilendiğim şey, gerçek bir problemi anlamak ve ona işe yarayan bir çözüm geliştirmek.\n\nMURAT/LAB ise bu fikirleri denediğim, geliştirdiğim ve hayata geçirdiğim kişisel çalışma alanım.',
   },
   lab: {
     lines: ['Bazen bir problemi çözmek için.', 'Bazen meraktan.', 'Bazen de sadece ‘acaba olur mu?’ diye.'],
