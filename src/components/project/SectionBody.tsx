@@ -1,9 +1,21 @@
 import type { CaseSectionData } from '@/types';
 import { cn } from '@/lib/cn';
+import SectionFigure from './SectionFigure';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/** Bölüm gövdesi. `figure` varsa görsel önce, metin sonra gelir; yoksa çıktı önceki sürümle birebir aynıdır. */
 export default function SectionBody({ section }: { section: CaseSectionData }) {
+  if (!section.figure) return <SectionContent section={section} />;
+  return (
+    <>
+      <SectionFigure figure={section.figure} />
+      <SectionContent section={section} />
+    </>
+  );
+}
+
+function SectionContent({ section }: { section: CaseSectionData }) {
   if (section.kind === 'prose') {
     return (
       <div className="max-w-2xl space-y-5">

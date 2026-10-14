@@ -32,7 +32,7 @@ const HINT = {
   sort: 'Küçük sayı önce gelir (0–9999).',
   comingSoon: '“Çok yakında” projeler detay sayfası olmayan yer tutucu karttır; yalnızca başlık gerekir.',
   showcase: 'İsteğe bağlı. Proje sayfasının sonunda “VIEW PROJECT SHOWCASE” bağlantısı olarak görünür. Yalnızca herkese açık HTTPS bağlantıları. Bağlantının doğruluğunu kontrol edin. Kutuyu boşaltıp kaydetmek bağlantıyı kaldırır; hiç dokunmazsanız mevcut bağlantı korunur. Aynı değer case study JSON’unda showcase.url olarak saklanır.',
-  caseStudy: 'Vaka çalışması içeriği JSON olarak. Geçerli yapıya uymayan JSON kaydedilmez. Yayınlamak için gerekli (Çok yakında projeler hariç).',
+  caseStudy: 'Vaka çalışması içeriği JSON olarak. Geçerli yapıya uymayan JSON kaydedilmez. Yayınlamak için gerekli (Çok yakında projeler hariç). Bölüme ürün görseli eklemek için bölüm nesnesine "figure": {"path":"projects/<proje>/<dosya>.webp","alt":"…","width":1600,"height":900,"caption":"…"} yazın (alt, width, height zorunlu; bölüm başına en fazla 1, projede en fazla 6). Dosya önce Supabase site-media bucket’ına yüklenmiş olmalı; bu bucket HERKESE AÇIKTIR. Work projelerinde müşteri/çalışan verisi, iç URL, API anahtarı, parola, e-posta ve gizli operasyonel bilgi görselde bulunmamalıdır; gerçek ekran yerine örnek veriyle hazırlanmış görsel tercih edin ve yayınlamadan önce kontrol edin. Dosya adını sürümlü kullanın (ör. overview-v2.webp).',
 } as const;
 
 export default function ProjectForm({ mode, action, initial, id, expectedDraftUpdatedAt = '', slugLocked = false, canPublish = false }: Props) {

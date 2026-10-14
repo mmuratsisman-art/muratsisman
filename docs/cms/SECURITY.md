@@ -91,3 +91,15 @@ Ayrıntı: [`ANALYTICS.md`](./ANALYTICS.md). Güvenlik açısından özet:
 - **Yazıcı hesabı yetkisi dardır:** yalnızca `record_hit()` ve (her `authenticated` gibi) yayınlanmış içeriği okuma. Mevcut CMS yazma yolları (`is_admin()`) ve admin RPC'leri ona kapalıdır; bu `rls_smoke_analytics.sql` ile her fonksiyon için sınanır. İptal: `analytics_writers` satırını silmek (anında).
 - **Sahte isteklerle sayım şişirilmesi tamamen önlenemez** (bkz. ANALYTICS.md §5). `ANALYTICS_WAF_CONFIRMED` gerçek bir WAF doğrulaması değil, manuel onay bayrağıdır.
 - **Gizlilik:** IP, User-Agent, hash ve ziyaretçi kimliği saklanmaz; çerez/depolama yok; DNT/GPC saygı görür.
+
+## Proje bölüm görselleri (case_study `figure`, FAZ 1D-2B V1)
+
+- **Ne:** `case_study.sections[]` içindeki her bölüm isteğe bağlı bir `figure` taşıyabilir: `{ path, alt, width, height, caption? }`. Görsel yalnızca CMS modunda gösterilir; statik modda ve Supabase adresi tanımsızken hiçbir şey render edilmez (sayfa hata vermez).
+- **`path` bir URL değildir:** `site-media` bucket'ında `projects/` ile başlayan göreli yoldur. Reddedilenler: `http(s)://`, `//`, mutlak yol, `..`, `\`, `%`, boşluk, büyük harf, `projects/` dışı klasörler, `.svg`/`.gif`/`.pdf` ve diğer uzantılar (yalnızca jpg, jpeg, png, webp, avif). Kural tek yerde: `src/lib/cms/validate/figure.ts`; kaydetme, public okuma ve önizleme aynı kuralı kullanır.
+- **Uzak görsel kısıtı:** `next.config.mjs` `images.remotePatterns` yalnızca projenin Supabase host'unu ve `/storage/v1/object/public/site-media/projects/**` yolunu (https, port/sorgu yok) kabul eder. Başka hiçbir uzak görsel optimize edilmez.
+- **Sınırlar:** bölüm başına 1, projede en çok 6 görsel; `alt` zorunlu (≤200), `width`/`height` zorunlu tam sayı (1–8000), `caption` ≤200. Öne çıkan vakalarda (`cases[].sections`) görsel desteklenmez.
+- **Bucket public'tir.** Yüklenen her dosya, adresi bilen herkesçe okunabilir; kaldırılsa bile önbelleklerde kalabilir. Bu bir **süreç** kuralıdır, teknik kilit değil.
+- **Work projeleri için yayın öncesi kontrol listesi:** görselde müşteri/çalışan verisi, iç URL ve hostname, API anahtarı/token/oturum bilgisi, e-posta, IP/ağ bilgisi, ticket numarası, tarayıcı sekmesi/yer imi çubuğu, gerçek operasyonel sayılar veya gizlilik anlaşmasına tabi bilgi **yok** mu? Mümkünse gerçek ekran yerine örnek veriyle hazırlanmış (mockup) görsel kullanın. Fotoğraflarda EXIF/konum bilgisini temizleyin.
+- **Dosya adı:** sürümlü ve tahmin edilmesi gerekmeyen adlar kullanın (ör. `projects/yakala/overview-v2.webp`); aynı adın üzerine yazmayın (optimize edilmiş kopya ve CDN önbelleği eski görseli gösterebilir).
+- **Dağıtım sırası (fail-closed):** önce bu kodu yayına alın, sonra CMS'e `figure` içeren içerik yazın. Eski kod `figure` anahtarını tanımaz; yayınlı bir belgede bulunursa o proje public okumadan düşer. Kodu geri almadan önce CMS'ten `figure` alanlarını kaldırın.
+- **V1 sınırı:** yükleme arayüzü yoktur; dosyayı bucket'a yüklemek ayrı bir (elle, yönetici) adımdır. Yükleme doğrulaması (magic byte, gerçek boyut, EXIF) V2 kapsamındadır.

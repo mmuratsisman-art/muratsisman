@@ -16,9 +16,15 @@ export interface ProjectSeo { title: string; description: string }
 
 export interface ListItem { title: string; text: string }
 
+/**
+ * Bölüme bağlı isteğe bağlı ürün görseli (yalnızca CMS modu; `site-media` bucket'ındaki `projects/…` yolu).
+ * `path` serbest URL DEĞİLDİR: kuralları cms/validate/figure.ts tanımlar. `alt`, `width`, `height` zorunludur (erişilebilirlik ve CLS).
+ */
+export interface CaseFigure { path: string; alt: string; width: number; height: number; caption?: string }
+
 export type CaseSectionData =
-  | { id: string; heading: string; kind: 'prose'; body: string[] }
-  | { id: string; heading: string; kind: 'list'; variant?: 'grid' | 'numbered'; items: ListItem[] };
+  | { id: string; heading: string; kind: 'prose'; body: string[]; figure?: CaseFigure }
+  | { id: string; heading: string; kind: 'list'; variant?: 'grid' | 'numbered'; items: ListItem[]; figure?: CaseFigure };
 
 export type DiagramKind = 'commerce' | 'migration' | 'ai-assist';
 
