@@ -1,5 +1,6 @@
 import type { Accent, CaseDiagram, CaseSectionData, CaseStudy, DiagramKind, FeaturedCaseData, ListItem } from '@/types';
 import { isAccent } from './common';
+import { FIGURE_LIMITS, validateFigure } from './figure';
 import { isObj, Issues, keysOk, str, strList, type Obj } from './schema';
 import { checkShowcaseUrl } from './showcase';
 
@@ -14,18 +15,20 @@ export const CASE_LIMITS = { json: 80_000, sections: 40, tags: 30, cases: 10, st
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const DIAGRAM_KINDS: readonly DiagramKind[] = ['commerce', 'migration', 'ai-assist'];
 
-function section(v: unknown, path: string, iss: Issues): CaseSectionData | undefined {
+function section(v: unknown, path: string, iss: Issues, allowFigure: boolean): CaseSectionData | undefined {
   if (!isObj(v)) return void iss.add(path, 'nesne olmalı');
   const kind = v.kind;
   if (kind === 'prose') {
-    keysOk(v, ['id', 'heading', 'kind', 'body'], path, iss);
+    keysOk(v, allowFigure ? ['id', 'heading', 'kind', 'body', 'figure'] : ['id', 'heading', 'kind', 'body'], path, iss);
     const id = idField(v, path, iss);
     const heading = str(v, 'heading', path, iss, 80);
     const body = strList(v.body, `${path}.body`, iss, { min: 1, max: CASE_LIMITS.paragraphs, item: 3000 });
-    return id && heading && body ? { id, heading, kind: 'prose', body } : undefined;
+    const fig = allowFigure && v.figure !== undefined ? validateFigure(v.figure, `${path}.figure`, iss) : undefined;
+    if (allowFigure && v.figure !== undefined && !fig) return undefined;
+    return id && heading && body ? { id, heading, kind: 'prose', body, ...(fig ? { figure: fig } : {}) } : undefined;
   }
   if (kind === 'list') {
-    keysOk(v, ['id', 'heading', 'kind', 'variant', 'items'], path, iss);
+    keysOk(v, allowFigure ? ['id', 'heading', 'kind', 'variant', 'items', 'figure'] : ['id', 'heading', 'kind', 'variant', 'items'], path, iss);
     const id = idField(v, path, iss);
     const heading = str(v, 'heading', path, iss, 80);
     let variant: 'grid' | 'numbered' | undefined;
@@ -44,8 +47,10 @@ function section(v: unknown, path: string, iss: Issues): CaseSectionData | undef
         const text = str(it, 'text', p, iss, 1000);
         if (title && text) items.push({ title, text });
       });
+    const fig = allowFigure && v.figure !== undefined ? validateFigure(v.figure, `${path}.figure`, iss) : undefined;
     if (!id || !heading || iss.any) return undefined;
-    return variant ? { id, heading, kind: 'list', variant, items } : { id, heading, kind: 'list', items };
+    const figure = fig ? { figure: fig } : {};
+    return variant ? { id, heading, kind: 'list', variant, items, ...figure } : { id, heading, kind: 'list', items, ...figure };
   }
   iss.add(`${path}.kind`, '"prose" veya "list" olmalı');
   return undefined;
@@ -56,17 +61,19 @@ function idField(o: Obj, path: string, iss: Issues): string | undefined {
   return v;
 }
 
-function sections(v: unknown, path: string, iss: Issues): CaseSectionData[] | undefined {
+/** `allowFigure`: yalnızca üst düzey `case_study.sections`; öne çıkan vakaların (`cases[].sections`) bölümlerinde görsel desteklenmez. */
+function sections(v: unknown, path: string, iss: Issues, allowFigure = false): CaseSectionData[] | undefined {
   if (!Array.isArray(v) || v.length < 1 || v.length > CASE_LIMITS.sections) return void iss.add(path, `1–${CASE_LIMITS.sections} bölüm olmalı`);
   const out: CaseSectionData[] = [];
   const seen = new Set<string>();
   v.forEach((s, i) => {
-    const r = section(s, `${path}[${i}]`, iss);
+    const r = section(s, `${path}[${i}]`, iss, allowFigure);
     if (!r) return;
     if (seen.has(r.id)) iss.add(`${path}[${i}].id`, `"${r.id}" kimliği tekrar ediyor`);
     seen.add(r.id);
     out.push(r);
   });
+  if (out.filter((s) => s.figure).length > FIGURE_LIMITS.perProject) iss.add(path, `projede en fazla ${FIGURE_LIMITS.perProject} bölüm görseli olabilir`);
   return out;
 }
 
@@ -121,7 +128,7 @@ export function validateCaseStudy(value: unknown): { ok: true; value: CaseStudy 
   if (!isObj(value)) return { ok: false, error: 'case_study bir nesne ({ ... }) olmalı.' };
   keysOk(value, ['sections', 'tagsHeading', 'tags', 'diagram', 'cases', 'slots', 'showcase'], 'case_study', iss);
 
-  const secs = sections(value.sections, 'case_study.sections', iss);
+  const secs = sections(value.sections, 'case_study.sections', iss, true);
   const tags = strList(value.tags, 'case_study.tags', iss, { min: 0, max: CASE_LIMITS.tags, item: 40 });
   const tagsHeading = value.tagsHeading === undefined ? undefined : str(value, 'tagsHeading', 'case_study', iss, 60);
   const dia = value.diagram === undefined ? undefined : diagram(value.diagram, 'case_study.diagram', iss);
