@@ -77,6 +77,8 @@ try {
       'react/jsx-runtime': jsxRuntime,
       'next/image': { __esModule: true, default: NextImage },
       '@/lib/media/public-url': { figureSrc: (p: string) => figureSrcFrom(env, p) },
+      // Lightbox (FAZ 1D-2C) bu testin konusu değildir: geçirgen yedek; gerçek bileşen verify-figure-lightbox.ts'te sınanır.
+      './FigureLightbox': { __esModule: true, default: (p: Props) => p.children },
     });
     const Body = run(bodyJs, {
       'react/jsx-runtime': jsxRuntime,
